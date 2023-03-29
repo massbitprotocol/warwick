@@ -1,0 +1,93 @@
+- name: round-trip-time
+  cronTime: "*/10 * * * * *"
+  config:
+    datasource: staked-gateway
+    axios:
+      timeout: 3000
+      url: "{{scheme}}://{{ip}}/_rtt"
+      method: GET
+      attemptNumber: 3
+      headers:
+        Host: internal.massbitroute.net
+    validates:
+    - each:
+        rules: ["axios", "axios-success"]
+        successPercent: 50
+      allFail:
+        rules: ["change-status-investigate"]
+- name: dot-latest-block
+  cronTime: "0 */5 * * * *"
+  config:
+    datasource: staked-node
+    blockchains: ["dot"]
+    type: rpc
+    axios:
+      timeout: 5000
+      url: "{{dataSource}}"
+      method: POST
+      attemptNumber: 1
+      headers:
+        "content-type": application/json
+        "X-Api-Key": "{{appKey}}"
+      body:
+        jsonrpc: "2.0"
+        method: "chain_getBlock"
+        params: []
+        id: 1
+    validates:
+    - each:
+        rules: ["axios", "axios-success", "map-response-field"]
+        mapFields:
+          blockNumber: "result.block.header.number"
+        successPercent: 100
+        maxBlockLate: 200
+      allFail:
+        rules: ["change-status-investigate"]
+      allSuccess:
+        rules: ["reduce"]
+        mapShareFields:
+          maxBlock:
+            operator: max
+            field: blockNumber
+    - each:
+        rules: ["check-block-late"]
+- name: eth-latest-block
+  cronTime: "0 */5 * * * *"
+  config:
+    datasource: staked-node
+    blockchains: ["eth"]
+    type: rpc
+    axios:
+      timeout: 5000
+      url: "{{dataSource}}"
+      method: POST
+      attemptNumber: 1
+      headers:
+        "content-type": application/json
+        "X-Api-Key": "{{appKey}}"
+      body:
+        jsonrpc: "2.0"
+        method: "eth_getBlockByNumber"
+        params: ["latest", true]
+        id: 1
+    validates:
+    - each:
+        rules: ["axios", "axios-success", "map-response-field"]
+        mapFields:
+          blockNumber:
+            operator: parse-hex
+            field: "result.number"
+        successPercent: 100
+        maxBlockLate:  1200
+      allFail:
+        rules: ["change-status-investigate"]
+      allSuccess:
+        rules: ["reduce"]
+        mapShareFields:
+          maxBlock:
+            operator: max
+            field: blockNumber
+    - each:
+        rules: ["check-block-late"]
+      allFail:
+        rules: ["change-status-investigate"]

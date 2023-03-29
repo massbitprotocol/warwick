@@ -1,0 +1,27 @@
+version: '3'
+
+services:
+  dev:
+    container_name: warwick
+    image: warwick:1.0.0
+    build:
+      dockerfile: Dockerfile.dev
+      context: .
+      target: development
+    command: npm run start:local
+    ports: 
+    - "3002:3000"
+    environment:
+      - DB_HOST=host.docker.internal
+      - REDIS_HOST=host.docker.internal
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - ./config/tasks.yaml:/massbit/massbitroute/app/src/services/tasks.yaml
+    extra_hosts:
+    - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+
+networks:
+  default:
+    driver: bridge

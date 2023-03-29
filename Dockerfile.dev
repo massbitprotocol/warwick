@@ -1,0 +1,14 @@
+FROM --platform=linux/amd64 node:16 as development
+
+WORKDIR /app
+
+# Bundle app source
+COPY package*.json ./
+
+RUN npm install glob rimraf
+
+RUN npm install --only=development
+
+COPY . .
+
+RUN npm run build

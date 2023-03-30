@@ -1,6 +1,7 @@
 import { Injectable, Logger, OnModuleInit } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { SchedulerRegistry } from "@nestjs/schedule";
+import { AxiosError, AxiosResponse } from "axios";
 import { CronJob } from "cron";
 import { BaseApi } from "src/apis/base.api";
 import { configTasks, DatasourceType, EBlockChain, EGatewayStatus, ReduceOperator, REQUEST_SCHEME, ValidateRule } from "src/configs/consts";
@@ -27,30 +28,39 @@ export class JobManagerService implements OnModuleInit {
     onModuleInit() {
         this.taskConfigs = this.configService.get<SchedulerTask[]>(configTasks)
         this.taskConfigs.forEach((taskConfig) => {
-            this.logger.log("Create cron job " + taskConfig.name)
-            const engine = new JobEngine(
-                this.logger,
-                taskConfig.config,
-                this.templateService,
-                this.gatewayRepository,
-                this.nodeRepository,
-                this.baseApi)
-            const cronJob = new CronJob(
-                taskConfig.cronTime,
-                () => {
-                    this.logger.debug(`Running job ${taskConfig.name}`)
-                    engine.handleCronJob()
-                },
-                null,
-                true,
-                "UTC",
-                taskConfig.config,
-                true
-            )
-            this.schedulerRegistry.addCronJob(
-                taskConfig.name,
-                cronJob
-            )
+            (taskConfig.config.blockchains || [""]).forEach((blockchain) => {
+                const taskName = [taskConfig.name, blockchain].filter((str) => str).join("-")
+                this.logger.log("Create cron job " + taskName);
+                const engine = new JobEngine(
+                    taskName,
+                    blockchain,
+                    this.logger,
+                    taskConfig.config,
+                    this.templateService,
+                    this.gatewayRepository,
+                    this.nodeRepository,
+                    this.baseApi)
+                const cronJob = new CronJob(
+                    taskConfig.cronTime,
+                    async() => {
+                        engine.debug(`Running`)
+                        try {
+                            await engine.handleCronJob()
+                        } catch(err) {
+                            engine.error(err)
+                        }
+                    },
+                    null,
+                    true,
+                    "UTC",
+                    taskConfig.config,
+                    true
+                )
+                this.schedulerRegistry.addCronJob(
+                    taskName,
+                    cronJob
+                )
+            })
         })
     }
 
@@ -60,6 +70,8 @@ export class JobEngine {
     private allContexts: DatasourceContext[]
     private jobContext = {}
     constructor(
+        private readonly name: string,
+        private readonly blockchain: EBlockChain,
         private readonly logger: Logger,
         private readonly config: TaskConfig,
         private readonly templateService: TemplateService,
@@ -68,6 +80,22 @@ export class JobEngine {
         private readonly baseApi: BaseApi
     ) { }
 
+    logPrefix() {
+        return `[${this.name}] `
+    }
+
+    log(message: any, ...optionalParams: [...any, string?]) {
+        this.logger.log(this.logPrefix() + message, ...optionalParams)
+    }
+
+    debug(message: any, ...optionalParams: [...any, string?]) {
+        this.logger.debug(this.logPrefix() + message, ...optionalParams)
+    }
+
+    error(message: any, ...optionalParams: [...any, string?]) {
+        this.logger.error(this.logPrefix() + message, ...optionalParams)
+    }
+
     async getDatasource(config: TaskConfig) {
         let datasources = []
         switch (config.datasource) {
@@ -75,7 +103,8 @@ export class JobEngine {
                 datasources = await this.gatewayRepository.getAllStaked();
                 break
             case DatasourceType.StakedNode:
-                datasources = await this.nodeRepository.getAllStakedOfBlockchains(config.blockchains);
+                if (!this.blockchain) throw new Error("Blockchain is required")
+                datasources = await this.nodeRepository.getAllStakedOfBlockchain(this.blockchain);
                 break
             default:
                 this.logger.warn(`Datasource ${config.datasource} is not supported!`)
@@ -87,7 +116,7 @@ export class JobEngine {
     async handleCronJob(datasources: any[] = []) {
         if (datasources.length == 0) {
             datasources = await this.getDatasource(this.config);
-            this.logger.debug(`Found ${datasources.length} datasource(s)!`)
+            this.debug(`Found ${datasources.length} datasource(s)!`)
         }
         this.allContexts = datasources.map((datasource) => new DatasourceContext(datasource));
         let ctxsTmp = this.allContexts;
@@ -102,16 +131,17 @@ export class JobEngine {
         context: DatasourceContext): Promise<DatasourceContext> {
         try {
             switch (rule) {
-                case ValidateRule.Axios:
-                    for (let i = 0; i < this.config.axios.attemptNumber; i++) {
+                case ValidateRule.Http:
+                    for (let i = 0; i < this.config.http.attemptNumber; i++) {
+                        // TODO: handle fail request with status != 2xx
                         const res = await this.baseApi.doHttpRequest({
-                            ...this.config.axios,
-                            url: this.templateService.bindTemplate(this.config.axios.url, {
+                            ...this.config.http,
+                            url: this.templateService.bindTemplate(this.config.http.url, {
                                 scheme: REQUEST_SCHEME,
                                 ...context.datasource
                             }),
-                            headers: Object.keys(this.config.axios.headers || {}).reduce((acc, header) => {
-                                acc[header] = this.templateService.bindTemplate(this.config.axios.headers[header], {
+                            headers: Object.keys(this.config.http.headers || {}).reduce((acc, header) => {
+                                acc[header] = this.templateService.bindTemplate(this.config.http.headers[header], {
                                     ...context.datasource
                                 })
                                 return acc
@@ -120,8 +150,8 @@ export class JobEngine {
                         context.responses.push(res);
                     }
                     break
-                case ValidateRule.AxiosSuccess:
-                    const successNumber = context.responses.filter((res) => [200, 201].includes(res.status)).length
+                case ValidateRule.HttpSuccess:
+                    const successNumber = context.responses.filter((res) => res.constructor.name !== AxiosError.name).length
                     if (((successNumber / context.responses.length) * 100) < validationRule.successPercent) {
                         context.success = false
                     }
@@ -129,7 +159,7 @@ export class JobEngine {
                 case ValidateRule.MapResponseField:
                     Object.keys(validationRule.mapFields).forEach((mapField) => {
                         const rule = validationRule.mapFields[mapField] as ReduceMapField
-                        let val = _.get(context.responses[0].data, rule.field)
+                        let val = _.get((context.responses[0] as AxiosResponse).data, rule.field)
                         switch(rule.operator) {
                             case ReduceOperator.ParseHex:
                                 val = parseInt(val, 16)
@@ -140,12 +170,12 @@ export class JobEngine {
                     break
                 case ValidateRule.CheckBlockLate:
                     if ((context.context["blockNumber"] - this.jobContext["maxBlock"]) > validationRule.maxBlockLate) {
-                        this.logger.debug(`Block of node ${context.datasource.id} was late: ${context.context["blockNumber"]} < ${this.jobContext["maxBlock"]}`)
+                        this.debug(`Block of node ${context.datasource.id} was late: ${context.context["blockNumber"]} < ${this.jobContext["maxBlock"]}`)
                         context.success = false
                     }
                     break
                 case ValidateRule.ChangeStatusInvestigate:
-                    this.logger.debug(`Change status of datasource ${this.config.datasource}, id=${context.datasource.id} to ${EGatewayStatus.INVESTIGATE}`)
+                    this.log(`Change status of datasource ${this.config.datasource}, id=${context.datasource.id} to ${EGatewayStatus.INVESTIGATE}`)
                     switch (this.config.datasource) {
                         case DatasourceType.StakedGateway:
                             await this.gatewayRepository.setStatus(context.datasource.id, EGatewayStatus.INVESTIGATE)
@@ -157,7 +187,7 @@ export class JobEngine {
                     break
             }
         } catch (err) {
-            this.logger.error(`${JSON.stringify(context.datasource)} ${err.message} ${err.stack}`)
+            this.logger.error(`${err.message} ${err.stack}`)
             context.success = false
         }
         return context;
@@ -212,7 +242,7 @@ export class JobEngine {
                             const rule = taskValidation.allSuccess.mapShareFields[targetField]
                             this.reduce(targetField, rule, ctxs)
                         })
-                        this.logger.debug(JSON.stringify(this.jobContext))
+                        this.debug(JSON.stringify(this.jobContext))
                         break
                     default:
                         if (ctxs.length == 0) {

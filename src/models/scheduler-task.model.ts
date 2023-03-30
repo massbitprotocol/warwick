@@ -38,7 +38,7 @@ export class TaskValidation {
   allFail: TaskValidationRule
 }
 
-export class AxiosConfig {
+export class HttpConfig {
   @Expose()
   timeout: number
 
@@ -66,7 +66,7 @@ export class TaskConfig {
   blockchains: EBlockChain[]
 
   @Expose()
-  axios: AxiosConfig
+  http: HttpConfig
 
   @Expose()
   validates: TaskValidation[]
@@ -74,7 +74,7 @@ export class TaskConfig {
 
 export class DatasourceContext {
   datasource: any
-  responses: AxiosResponse[]
+  responses: Array<AxiosResponse | Error>
   success: boolean
   context = {}
 

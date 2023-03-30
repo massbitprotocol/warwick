@@ -87,10 +87,12 @@ export class AppModule implements NestModule, OnModuleInit {
   constructor(private readonly httpService: HttpService) {
   }
   onModuleInit() {
-    this.httpService.axiosRef.interceptors.request.use((request) => AxiosLogger.requestLogger(request, {
+    // this.httpService.axiosRef.interceptors.request.use((request) => AxiosLogger.requestLogger(request, {
+    //   data: false
+    // }) as InternalAxiosRequestConfig)
+    this.httpService.axiosRef.interceptors.response.use((request) => AxiosLogger.responseLogger(request, {
       data: false
-    }) as InternalAxiosRequestConfig)
-    // this.httpService.axiosRef.interceptors.response.use((request) => AxiosLogger.responseLogger(request))
+    }))
   }
   configure(consumer: MiddlewareConsumer) {
     consumer

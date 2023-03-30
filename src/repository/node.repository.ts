@@ -12,10 +12,10 @@ export class NodeRepository {
     private readonly nodeRepository: Repository<Node>) {
   }
 
-  async getAllStakedOfBlockchains(blockchains: EBlockChain[]): Promise<Node[]> {
+  async getAllStakedOfBlockchain(blockchain: EBlockChain): Promise<Node[]> {
     return this.nodeRepository.find({
       where: {
-        blockchain: In(blockchains),
+        blockchain: blockchain,
         deleted: EBoolean.FALSE,
         status: EGatewayStatus.STAKED
       },

@@ -154,8 +154,8 @@ export enum DatasourceType {
 }
 
 export enum ValidateRule{
-  Axios = "axios",
-  AxiosSuccess = "axios-success",
+  Http = "http",
+  HttpSuccess = "http-success",
   MapResponseField = "map-response-field",
   ChangeStatusInvestigate = "change-status-investigate",
   CheckBlockLate = "check-block-late",

@@ -20,6 +20,5 @@ export default registerAs(configTasks, () => {
             break
     }
     jsons = jsons.map((j) => plainToClass(SchedulerTask, j))
-    console.log(JSON.stringify(jsons))
     return jsons;
 })

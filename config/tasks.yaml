@@ -2,7 +2,7 @@
   cronTime: "*/10 * * * * *"
   config:
     datasource: staked-gateway
-    axios:
+    http:
       timeout: 3000
       url: "{{scheme}}://{{ip}}/_rtt"
       method: GET
@@ -11,17 +11,17 @@
         Host: internal.massbitroute.net
     validates:
     - each:
-        rules: ["axios", "axios-success"]
+        rules: ["http", "http-success"]
         successPercent: 50
       allFail:
         rules: ["change-status-investigate"]
-- name: dot-latest-block
+- name: latest-block
   cronTime: "0 */5 * * * *"
   config:
     datasource: staked-node
     blockchains: ["dot"]
     type: rpc
-    axios:
+    http:
       timeout: 5000
       url: "{{dataSource}}"
       method: POST
@@ -36,7 +36,7 @@
         id: 1
     validates:
     - each:
-        rules: ["axios", "axios-success", "map-response-field"]
+        rules: ["http", "http-success", "map-response-field"]
         mapFields:
           blockNumber: "result.block.header.number"
         successPercent: 100
@@ -51,13 +51,15 @@
             field: blockNumber
     - each:
         rules: ["check-block-late"]
-- name: eth-latest-block
+      allFail:
+        rules: ["change-status-investigate"]
+- name: latest-block
   cronTime: "0 */5 * * * *"
   config:
     datasource: staked-node
     blockchains: ["eth"]
     type: rpc
-    axios:
+    http:
       timeout: 5000
       url: "{{dataSource}}"
       method: POST
@@ -72,7 +74,7 @@
         id: 1
     validates:
     - each:
-        rules: ["axios", "axios-success", "map-response-field"]
+        rules: ["http", "http-success", "map-response-field"]
         mapFields:
           blockNumber:
             operator: parse-hex

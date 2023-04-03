@@ -1,8 +1,7 @@
 import { Injectable } from "@nestjs/common";
-import { Gateway } from "src/entities/gateway.entity";
 import { In, Not, Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
-import { EBlockChain, EBoolean, EGatewayStatus, ENodeStatus, EZONE, INACTIVE_NODE_STATUS } from "src/configs/consts";
+import { EBlockChain, EBoolean, EGatewayStatus, ENodeStatus, EOperateStatus, EZONE, INACTIVE_NODE_STATUS } from "src/configs/consts";
 import { Node } from "src/entities/node.entity";
 
 @Injectable()
@@ -12,12 +11,13 @@ export class NodeRepository {
     private readonly nodeRepository: Repository<Node>) {
   }
 
-  async getAllStakedOfBlockchain(blockchain: EBlockChain): Promise<Node[]> {
+  async findByBlockchainAndStatus(blockchain: EBlockChain, status: ENodeStatus, operateStatus: EOperateStatus): Promise<Node[]> {
     return this.nodeRepository.find({
       where: {
         blockchain: blockchain,
         deleted: EBoolean.FALSE,
-        status: EGatewayStatus.STAKED
+        status,
+        operateStatus
       },
       order: {
         updatedAt: "ASC"
@@ -46,9 +46,10 @@ export class NodeRepository {
     })
   }
 
-  async setStatus(nodeId: string, status: EGatewayStatus): Promise<boolean> {
+  async setStatus(nodeId: string, status: ENodeStatus, operateStatus: EOperateStatus): Promise<boolean> {
     const result = await this.nodeRepository.update(nodeId, {
       status,
+      operateStatus,
       updatedAt: new Date()
     })
     return result.affected > 0

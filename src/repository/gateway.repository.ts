@@ -2,7 +2,7 @@ import { Injectable } from "@nestjs/common";
 import { Gateway } from "src/entities/gateway.entity";
 import { In, Not, Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
-import { EBoolean, EGatewayStatus, INACTIVE_GATEWAY_STATUS, INITABLE_GATEWAY_STATUS, RELOADABLE_GATEWAY_STATUS } from "src/configs/consts";
+import { EBoolean, EGatewayStatus, EOperateStatus, INACTIVE_GATEWAY_STATUS, INITABLE_GATEWAY_STATUS, RELOADABLE_GATEWAY_STATUS } from "src/configs/consts";
 
 @Injectable()
 export class GatewayRepository extends Repository<Gateway> {
@@ -20,11 +20,12 @@ export class GatewayRepository extends Repository<Gateway> {
     })
   }
 
-  async getAllStaked(): Promise<Gateway[]> {
+  async findByStatus(status: EGatewayStatus, operateStatus: EOperateStatus): Promise<Gateway[]> {
     return this.repository.find({
       where: {
         deleted: EBoolean.FALSE,
-        status: EGatewayStatus.STAKED
+        status: status,
+        operateStatus: operateStatus
       },
       order: {
         updatedAt: "ASC"
@@ -53,9 +54,10 @@ export class GatewayRepository extends Repository<Gateway> {
     })
   }
 
-  async setStatus(gatewayId: string, status: EGatewayStatus): Promise<boolean> {
+  async setStatus(gatewayId: string, status: EGatewayStatus, operateStatus: EOperateStatus): Promise<boolean> {
     const result = await this.repository.update(gatewayId, {
       status,
+      operateStatus,
       updatedAt: new Date()
     })
     return result.affected > 0

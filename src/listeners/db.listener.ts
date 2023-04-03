@@ -4,7 +4,7 @@ import { ConfigService } from "@nestjs/config"
 import { TypeOrmModuleOptions } from "@nestjs/typeorm";
 import { Queue } from "bull";
 import createSubscriber, { Subscriber } from "pg-listen"
-import { configDb, DB_EVENT_QUEUE } from "src/configs/consts";
+import { configDb, MONITOR_TASKS_EVENT_QUEUE } from "src/configs/consts";
 
 @Injectable()
 export class DbListener implements OnModuleDestroy, OnModuleInit {
@@ -12,7 +12,7 @@ export class DbListener implements OnModuleDestroy, OnModuleInit {
   private readonly logger = new Logger(DbListener.name);
   constructor(
     private readonly configService: ConfigService,
-    @InjectQueue(DB_EVENT_QUEUE)
+    @InjectQueue(MONITOR_TASKS_EVENT_QUEUE)
     private readonly dbEventQueue: Queue) {
   }
 

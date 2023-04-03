@@ -1,5 +1,5 @@
 import { Expose } from "class-transformer";
-import { EBlockChain, EBoolean, EGatewayStatus, ENetWork, EOperateStatus, EZONE } from "src/configs/consts";
+import { EBlockChain, EBoolean, EGatewayStatus, ENetWork, ENodeStatus, EOperateStatus, EZONE } from "src/configs/consts";
 import { Entity, Column, Index } from "typeorm";
 import BaseTable from "./base-table";
 
@@ -41,7 +41,7 @@ export class Node extends BaseTable {
 
   @Column('varchar')
   @Index()
-  status?: EGatewayStatus;
+  status?: ENodeStatus;
 
   @Column('varchar', { nullable: true, default: 'waiting' })
   @Index()

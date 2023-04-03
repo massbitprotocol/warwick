@@ -1,0 +1,26 @@
+import { Expose } from "class-transformer"
+import { EBlockChain } from "src/configs/consts"
+import { HttpConfig, TaskValidation } from "./rule.model"
+
+export class TaskConfig {
+    @Expose()
+    name: string
+
+    @Expose()
+    useConfig: string[]
+
+    @Expose()
+    timer: number
+
+    @Expose()
+    datasource: string
+
+    @Expose()
+    blockchains: EBlockChain[]
+
+    @Expose()
+    http: HttpConfig
+
+    @Expose()
+    validates: TaskValidation[]
+}

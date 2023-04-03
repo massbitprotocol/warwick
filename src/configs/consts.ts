@@ -7,12 +7,14 @@ export const configCommon = 'common';
 export const configRedis = 'redis';
 export const configTasks = 'tasks';
 
-export const DB_EVENT_QUEUE = "db-event";
+export const MONITOR_TASKS_EVENT_QUEUE = "monitor-tasks";
 
 export const REQUEST_SCHEME = process.env.REQUEST_SCHEME || "https";
-export const TASK_CONFIG_LOCATION = process.env.TASK_CONFIG_LOCATION;
-export const TASK_CONFIG_MODE = process.env.TASK_CONFIG_MODE;
+export const CONFIG_MODE = process.env.CONFIG_MODE;
 export const TASK_CONFIG = process.env.TASK_CONFIG;
+export const TASK_CONFIG_LOCATION = process.env.TASK_CONFIG_LOCATION;
+export const SHARE_CONFIG = process.env.SHARE_CONFIG;
+export const SHARE_CONFIG_LOCATION = process.env.SHARE_CONFIG_LOCATION;
 
 export enum EStatus {
   ACTIVE = 1,
@@ -21,19 +23,10 @@ export enum EStatus {
 
 export enum EGatewayStatus {
   CREATED = 'created',
-  INSTALLED = 'installed',
-  VERIFYING = 'verifying',
   VERIFIED = 'verified',
-  FAILED = 'failed',
-  APPROVED = 'approved',
   STAKED = 'staked',
   UNSTAKE = 'unstake',
-  REPORTED = 'reported',
-  STOPPED = 'stopped',
-  INVESTIGATE = 'investigate',
-  INVESTIGATING = 'investigating',
-  INVESTIGATE_FAIL = 'investigate_fail',
-  DISAPPROVED = 'disapproved',
+  UNHEALTHY = 'unhealthy',
 }
 
 export enum EDapiProvider {
@@ -81,25 +74,17 @@ export enum EZONE {
 
 export enum ENodeStatus {
   CREATED = 'created',
-  INSTALLED = 'installed',
-  VERIFYING = 'verifying',
   VERIFIED = 'verified',
-  FAILED = 'failed',
-  APPROVED = 'approved',
   STAKED = 'staked',
   UNSTAKE = 'unstake',
-  REPORTED = 'reported',
-  STOPPED = 'stopped',
-  INVESTIGATE = 'investigate',
-  INVESTIGATING = 'investigating',
-  INVESTIGATE_FAIL = 'investigate_fail',
-  DISAPPROVED = 'disapproved',
+  UNHEALTHY = 'unhealthy',
 }
 
 export enum EOperateStatus {
-  IGNORED = 'ignored',
-  WAITING = 'waiting',
-  SUCCESS = 'success',
+  RUNNING = 'running',
+  INVESTIGATE = 'investigate',
+  REPORTED = 'reported',
+  STOPPED = 'stopped'
 }
 
 export enum EBoolean {
@@ -109,36 +94,26 @@ export enum EBoolean {
 
 export const INITABLE_GATEWAY_STATUS = [
   EGatewayStatus.CREATED,
-  EGatewayStatus.INSTALLED,
-  EGatewayStatus.VERIFYING,
 ]
 
 export const RELOADABLE_GATEWAY_STATUS = [
   EGatewayStatus.VERIFIED,
   EGatewayStatus.STAKED,
-  EGatewayStatus.INVESTIGATE,
-  EGatewayStatus.INVESTIGATING,
-  EGatewayStatus.INVESTIGATE_FAIL,
-  EGatewayStatus.REPORTED,
+  EGatewayStatus.UNHEALTHY,
 ]
 
 export const INACTIVE_NODE_STATUS = [
   ENodeStatus.CREATED,
-  ENodeStatus.FAILED,
+  ENodeStatus.VERIFIED,
+  ENodeStatus.UNHEALTHY,
   ENodeStatus.UNSTAKE,
-  ENodeStatus.REPORTED,
-  ENodeStatus.STOPPED,
-  ENodeStatus.DISAPPROVED
 ]
 
 export const INACTIVE_GATEWAY_STATUS = [
   EGatewayStatus.CREATED,
   EGatewayStatus.VERIFIED,
-  EGatewayStatus.FAILED,
+  EGatewayStatus.UNHEALTHY,
   EGatewayStatus.UNSTAKE,
-  EGatewayStatus.REPORTED,
-  EGatewayStatus.STOPPED,
-  EGatewayStatus.DISAPPROVED
 ]
 
 export type DbAction = "INSERT" | "UPDATE" | "DELETE" | "TRUNCATE";
@@ -149,8 +124,10 @@ export enum ConfigMode {
 }
 
 export enum DatasourceType {
-  StakedGateway = "staked-gateway",
-  StakedNode = "staked-node"
+  RunningGateway = "running-gateway",
+  InvestigateGateway = "investigate-gateway",
+  RunningNode = "running-node",
+  InvestigateNode = "investigate-node",
 }
 
 export enum ValidateRule{
@@ -158,7 +135,10 @@ export enum ValidateRule{
   HttpSuccess = "http-success",
   MapResponseField = "map-response-field",
   ChangeStatusInvestigate = "change-status-investigate",
+  ChangeStatusRunning = "change-status-running",
+  ChangeStatusReported = "change-status-reported",
   CheckBlockLate = "check-block-late",
+  Schedule = "schedule",
   Reduce = "reduce"
 }
 

@@ -12,13 +12,12 @@ import { GatewayRepository } from './repository/gateway.repository';
 import { FileService } from './services/file.service';
 import { TemplateService } from './services/template.service';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { configDb, configRedis, DB_EVENT_QUEUE } from './configs/consts';
+import { configDb, configRedis, MONITOR_TASKS_EVENT_QUEUE } from './configs/consts';
 import configurations from './configs';
 import { NodeRepository } from './repository/node.repository';
 import { Node } from './entities/node.entity';
-import { DbListener } from './listeners/db.listener';
 import { BullModule, BullRootModuleOptions } from '@nestjs/bull';
-import { DbConsumer } from './consumers/db.consumer';
+import { MonitorTaskConsumer } from './consumers/monitor.consumer';
 import { BaseApi } from './apis/base.api';
 import { AuthModule } from './auth/auth.module';
 import { LoggerMiddleware } from './middlewares/logger.middleware';
@@ -62,7 +61,7 @@ import { JobManagerService } from './services/job-manager.service';
       inject: [ConfigService]
     }),
     BullModule.registerQueue({
-      name: DB_EVENT_QUEUE,
+      name: MONITOR_TASKS_EVENT_QUEUE,
     }),
     AuthModule,
     HttpModule,
@@ -70,12 +69,12 @@ import { JobManagerService } from './services/job-manager.service';
   providers: [
     TemplateService,
     FileService,
-    JobManagerService,
     GatewayRepository,
     NodeRepository,
-    DbListener,
-    DbConsumer,
+    // DbListener,
+    MonitorTaskConsumer,
     BaseApi,
+    JobManagerService,
     {
       provide: APP_FILTER,
       useClass: AllExceptionsFilter,

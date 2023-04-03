@@ -1,76 +1,6 @@
 import { AxiosResponse } from "axios"
 import { Expose } from "class-transformer"
-import { EBlockChain, ReduceOperator, ValidateRule } from "src/configs/consts"
-
-export class ReduceMapField {
-  @Expose()
-  operator: ReduceOperator
-
-  @Expose()
-  field: string
-}
-
-export class TaskValidationRule {
-  @Expose()
-  rules: ValidateRule[]
-
-  @Expose()
-  mapFields: Map<string, ReduceMapField>
-
-  @Expose()
-  mapShareFields: Map<string, ReduceMapField>
-
-  @Expose()
-  successPercent: number
-
-  @Expose()
-  maxBlockLate: number
-}
-
-export class TaskValidation {
-  @Expose()
-  each: TaskValidationRule
-
-  @Expose()
-  allSuccess: TaskValidationRule
-
-  @Expose()
-  allFail: TaskValidationRule
-}
-
-export class HttpConfig {
-  @Expose()
-  timeout: number
-
-  @Expose()
-  url: string
-
-  @Expose()
-  method: string
-
-  @Expose()
-  attemptNumber: number
-
-  @Expose()
-  headers: any
-
-  @Expose()
-  body: any
-}
-
-export class TaskConfig {
-  @Expose()
-  datasource: string
-
-  @Expose()
-  blockchains: EBlockChain[]
-
-  @Expose()
-  http: HttpConfig
-
-  @Expose()
-  validates: TaskValidation[]
-}
+import { TaskConfig } from "./share-config.model"
 
 export class DatasourceContext {
   datasource: any
@@ -87,6 +17,9 @@ export class DatasourceContext {
 
 export class SchedulerTask {
   @Expose()
+  contextId: string
+
+  @Expose()
   name: string
 
   @Expose()
@@ -94,4 +27,14 @@ export class SchedulerTask {
 
   @Expose()
   config: TaskConfig
+
+  @Expose()
+  data: any
+}
+
+export class ApplicationTask {
+  constructor(
+    public readonly shareConfigs: Map<string, TaskConfig>,
+    public readonly tasks: SchedulerTask[]
+  ) {}
 }

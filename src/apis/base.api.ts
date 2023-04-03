@@ -1,8 +1,8 @@
 import { HttpService } from "@nestjs/axios";
 import { Injectable } from "@nestjs/common";
-import { HttpConfig } from "src/models/scheduler-task.model";
 import { firstValueFrom } from "rxjs";
 import { AxiosResponse } from "axios";
+import { HttpConfig } from "src/models/rule.model";
 
 @Injectable()
 export class BaseApi {

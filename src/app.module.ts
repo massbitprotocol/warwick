@@ -4,7 +4,7 @@ dotenv.config({
   path: `./config/.env${process.env.NODE_ENV ? `.${process.env.NODE_ENV}` : ''}`,
 });
 console.log("Running for env " + process.env.NODE_ENV)
-import { MiddlewareConsumer, Module, NestModule, RequestMethod } from '@nestjs/common';
+import { Logger, MiddlewareConsumer, Module, NestModule, RequestMethod } from '@nestjs/common';
 import { ScheduleModule } from '@nestjs/schedule';
 import { TypeOrmModule, TypeOrmModuleOptions } from '@nestjs/typeorm';
 import { Gateway } from './entities/gateway.entity';
@@ -83,12 +83,14 @@ import { JobManagerService } from './services/job-manager.service';
 })
 
 export class AppModule implements NestModule, OnModuleInit {
-  constructor(private readonly httpService: HttpService) {
-  }
+  private readonly logger = new Logger(AppModule.name)
+  constructor(
+    private readonly httpService: HttpService
+  ) { }
   onModuleInit() {
-    // this.httpService.axiosRef.interceptors.request.use((request) => AxiosLogger.requestLogger(request, {
-    //   data: false
-    // }) as InternalAxiosRequestConfig)
+    AxiosLogger.setGlobalConfig({
+      logger: (str) => this.logger.debug(str),
+    })
     this.httpService.axiosRef.interceptors.response.use((request) => AxiosLogger.responseLogger(request, {
       data: false
     }))

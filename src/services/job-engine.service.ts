@@ -215,23 +215,71 @@ export class JobEngineService {
 
   async schedule(contexts: DatasourceContext[], validationRule: TaskValidationRule) {
     const newTaskConfig = plainToInstance(TaskConfig, instanceToPlain(validationRule.schedule))
-    if (this.blockchain) {
-      newTaskConfig.blockchains = [this.blockchain]
-    }
+    newTaskConfig.blockchains = this.blockchain ? [this.blockchain] : []
     newTaskConfig.datasource = this.config.datasource;
     const newSchedulerTask = new SchedulerTask()
     const contextId = newContextId()
     newSchedulerTask.contextId = contextId
     newSchedulerTask.name = newTaskConfig.name + "-" + contextId
     newSchedulerTask.data = contexts.map((ctx) => ctx.datasource)
-    newSchedulerTask.config = newTaskConfig
-    this.logger.log(`Schedule a job after ${newSchedulerTask.config.timer} second(s)`)
-    await this.monitorEventQueue.add(instanceToPlain(newSchedulerTask), {
+    newSchedulerTask.config = newTaskConfig;
+    const job = await this.monitorEventQueue.add(instanceToPlain(newSchedulerTask), {
       removeOnComplete: true,
       removeOnFail: true,
       attempts: 1,
       delay: newSchedulerTask.config.timer * 1000
     })
+    this.logger.log(`Schedule job ${job.id} running after ${newSchedulerTask.config.timer} second(s)`)
+  }
+
+  async removeFromScheduler(ctxs: DatasourceContext[]) {
+    const delayedJobs = await this.monitorEventQueue.getJobs(["delayed"]);
+    let targetDatasourceTypes = []
+    switch(this.config.datasource) {
+      case DatasourceType.InvestigateGateway:
+      case DatasourceType.RunningGateway:
+        targetDatasourceTypes = [DatasourceType.InvestigateGateway, DatasourceType.RunningGateway]
+        break
+      case DatasourceType.InvestigateNode:
+      case DatasourceType.RunningNode:
+        targetDatasourceTypes = [DatasourceType.InvestigateNode, DatasourceType.RunningNode]
+        break
+    }
+    const excludeIds = ctxs.map((ctx) => ctx.datasource.id)
+    const promises = delayedJobs.map((delayjob) => ({
+      job: delayjob,
+      taskDetail: plainToInstance(SchedulerTask, delayjob.data)
+    }))
+    .filter(({taskDetail}) => targetDatasourceTypes.includes(taskDetail.config.datasource) && (taskDetail.config.blockchains[0] || "") == this.blockchain)
+    .map(async({job, taskDetail}) => {
+      const data = taskDetail.data;
+      const filterData = (data as Array<any>).filter((i) => !excludeIds.includes(i.id))
+      if (filterData.length == 0) {
+        this.logger.log(`Deleting job ${job.id} (${taskDetail.name})`)
+        await job.remove()
+      } else if (filterData.length != data.length) {
+        taskDetail.data = filterData;
+        this.logger.log(`Update datasource for job ${job.id} (${taskDetail.name})`)
+        await job.update(instanceToPlain(taskDetail))
+      }
+    })
+    await Promise.all(promises)
+  }
+
+  async scheduleIfNotExist(ctxs: DatasourceContext[], validationRule: TaskValidationRule) {
+    const delayedJobs = await this.monitorEventQueue.getJobs(["delayed"]);
+    const tasks = delayedJobs.map((delayjob) => plainToInstance(SchedulerTask, delayjob.data))
+    const taskMap = tasks.filter((task) => task.config.name == validationRule.schedule.name).reduce((acc, val) => {
+      (val.data as Array<any>).forEach((i) => {
+        acc.set(val.config.name + "-" + i.id, true)
+      })
+      return acc
+    }, new Map<string, boolean>())
+    const missingContexts = ctxs.filter((context) => !taskMap.has(validationRule.schedule.name + "-" + context.datasource.id))
+    if (missingContexts.length > 0) {
+      this.logger.log(`Creating task ${validationRule.schedule.name} for ${missingContexts.length} datasource(s)`)
+      await this.schedule(missingContexts, validationRule)
+    }
   }
 
   async processingRules(contexts: DatasourceContext[], validationRule: TaskValidationRule, success: boolean) {
@@ -246,30 +294,19 @@ export class JobEngineService {
           this.logger.debug(JSON.stringify(this.jobContext))
           break
         case ValidateRule.Schedule:
-          if (ctxs.length == 0) {
-            break
-          }
+          if (ctxs.length == 0) break
           await this.schedule(ctxs, validationRule)
           break
         case ValidateRule.ScheduleIfNotExist:
-          const delayedJobs = await this.monitorEventQueue.getJobs(["delayed"]);
-          const tasks = delayedJobs.map((delayjob) => plainToInstance(SchedulerTask, delayjob.data))
-          const taskMap = tasks.filter((task) => task.config.name == validationRule.schedule.name).reduce((acc, val) => {
-            (val.data as Array<any>).forEach((i) => {
-              acc.set(val.config.name + "-" + i.id, true)
-            })
-            return acc
-          }, new Map<string, boolean>())
-          const missingContexts = contexts.filter((context) => !taskMap.has(validationRule.schedule.name + "-" + context.datasource.id))
-          if (missingContexts.length > 0) {
-            this.logger.log(`Creating task ${validationRule.schedule.name} for ${missingContexts.length} datasource(s)`)
-            await this.schedule(missingContexts, validationRule)
-          }
+          if (ctxs.length == 0) break
+          await this.scheduleIfNotExist(ctxs, validationRule);
+          break
+        case ValidateRule.RemoveFromScheduler:
+          if (ctxs.length == 0) break
+          await this.removeFromScheduler(ctxs);
           break
         default:
-          if (ctxs.length == 0) {
-            break
-          }
+          if (ctxs.length == 0) break
           await Promise.all(ctxs.map(async (context) => {
             await this.validateEach(validationRule, rule, context);
           }))

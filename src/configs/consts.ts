@@ -140,6 +140,7 @@ export enum ValidateRule{
   CheckBlockLate = "check-block-late",
   Schedule = "schedule",
   ScheduleIfNotExist = "schedule-if-not-exist",
+  RemoveFromScheduler = "remove-from-scheduler",
   Reduce = "reduce"
 }
 

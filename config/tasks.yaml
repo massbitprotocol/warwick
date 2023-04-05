@@ -29,7 +29,9 @@
           useConfig: ["gwRtt"]
           timer: 3600
       allSuccess:
-        rules: ["change-status-running"]
+        rules: ["change-status-running", "remove-from-scheduler"]
+        schedule:
+          name: rtt-last-hit
 # Polkadot nodes
 - name: latest-block
   cronTime: "0 */1 * * * *"
@@ -94,7 +96,9 @@
           useConfig: ["dotLatestBlock"]
           timer: 3600
       allSuccess:
-        rules: ["change-status-running"]
+        rules: ["change-status-running", "remove-from-scheduler"]
+        schedule:
+          name: latest-block-last-hit
 
 # Ethereum nodes
 - name: latest-block
@@ -164,4 +168,6 @@
           useConfig: ["ethLatestBlock"]
           timer: 3600
       allSuccess:
-        rules: ["change-status-running"]
+        rules: ["change-status-running", "remove-from-scheduler"]
+        schedule:
+          name: latest-block-last-hit

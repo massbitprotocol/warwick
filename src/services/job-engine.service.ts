@@ -47,9 +47,9 @@ export class JobEngineService {
     this.logger.contextId = this.name
   }
 
-  async getDatasource(config: TaskConfig) {
+  async getDatasource(datasource: DatasourceType): Promise<any[]> {
     let datasources = []
-    switch (config.datasource) {
+    switch (datasource) {
       case DatasourceType.RunningGateway:
         datasources = await this.gatewayRepository.findByStatus(EGatewayStatus.STAKED, EOperateStatus.RUNNING);
         break
@@ -65,7 +65,7 @@ export class JobEngineService {
         datasources = await this.nodeRepository.findByBlockchainAndStatus(this.blockchain, ENodeStatus.UNHEALTHY, EOperateStatus.INVESTIGATE);
         break
       default:
-        this.logger.warn(`Datasource ${config.datasource} is not supported!`)
+        this.logger.warn(`Datasource ${datasource} is not supported!`)
         break
     }
     return datasources;
@@ -73,7 +73,7 @@ export class JobEngineService {
 
   async handleCronJob(datasources: any[] = []) {
     if (datasources.length == 0) {
-      datasources = await this.getDatasource(this.config);
+      datasources = await this.getDatasource(this.config.datasource);
       this.logger.debug(`Found ${datasources.length} datasource(s)!`)
     }
     this.allContexts = datasources.map((datasource) => new DatasourceContext(datasource));
@@ -213,6 +213,27 @@ export class JobEngineService {
     return contexts.filter((ctx) => ctx.success);
   }
 
+  async schedule(contexts: DatasourceContext[], validationRule: TaskValidationRule) {
+    const newTaskConfig = plainToInstance(TaskConfig, instanceToPlain(validationRule.schedule))
+    if (this.blockchain) {
+      newTaskConfig.blockchains = [this.blockchain]
+    }
+    newTaskConfig.datasource = this.config.datasource;
+    const newSchedulerTask = new SchedulerTask()
+    const contextId = newContextId()
+    newSchedulerTask.contextId = contextId
+    newSchedulerTask.name = newTaskConfig.name + "-" + contextId
+    newSchedulerTask.data = contexts.map((ctx) => ctx.datasource)
+    newSchedulerTask.config = newTaskConfig
+    this.logger.log(`Schedule a job after ${newSchedulerTask.config.timer} second(s)`)
+    await this.monitorEventQueue.add(instanceToPlain(newSchedulerTask), {
+      removeOnComplete: true,
+      removeOnFail: true,
+      attempts: 1,
+      delay: newSchedulerTask.config.timer * 1000
+    })
+  }
+
   async processingRules(contexts: DatasourceContext[], validationRule: TaskValidationRule, success: boolean) {
     for (const rule of validationRule.rules) {
       const ctxs = contexts.filter((context) => context.success == success)
@@ -228,24 +249,22 @@ export class JobEngineService {
           if (ctxs.length == 0) {
             break
           }
-          const newTaskConfig = plainToInstance(TaskConfig, instanceToPlain(validationRule.schedule))
-          if (this.blockchain) {
-            newTaskConfig.blockchains = [this.blockchain]
+          await this.schedule(ctxs, validationRule)
+          break
+        case ValidateRule.ScheduleIfNotExist:
+          const delayedJobs = await this.monitorEventQueue.getJobs(["delayed"]);
+          const tasks = delayedJobs.map((delayjob) => plainToInstance(SchedulerTask, delayjob.data))
+          const taskMap = tasks.filter((task) => task.config.name == validationRule.schedule.name).reduce((acc, val) => {
+            (val.data as Array<any>).forEach((i) => {
+              acc.set(val.config.name + "-" + i.id, true)
+            })
+            return acc
+          }, new Map<string, boolean>())
+          const missingContexts = contexts.filter((context) => !taskMap.has(validationRule.schedule.name + "-" + context.datasource.id))
+          if (missingContexts.length > 0) {
+            this.logger.log(`Creating task ${validationRule.schedule.name} for ${missingContexts.length} datasource(s)`)
+            await this.schedule(missingContexts, validationRule)
           }
-          newTaskConfig.datasource = this.config.datasource;
-          const newSchedulerTask = new SchedulerTask()
-          const contextId = newContextId()
-          newSchedulerTask.contextId = contextId
-          newSchedulerTask.name = newTaskConfig.name + "-" + contextId
-          newSchedulerTask.data = contexts.map((ctx) => ctx.datasource)
-          newSchedulerTask.config = newTaskConfig
-          this.logger.log(`Schedule a job after ${newSchedulerTask.config.timer} second(s)`)
-          this.monitorEventQueue.add(instanceToPlain(newSchedulerTask), {
-            removeOnComplete: true,
-            removeOnFail: true,
-            attempts: 1,
-            delay: newSchedulerTask.config.timer * 1000
-          })
           break
         default:
           if (ctxs.length == 0) {

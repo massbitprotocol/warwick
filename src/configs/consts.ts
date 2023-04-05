@@ -139,6 +139,7 @@ export enum ValidateRule{
   ChangeStatusReported = "change-status-reported",
   CheckBlockLate = "check-block-late",
   Schedule = "schedule",
+  ScheduleIfNotExist = "schedule-if-not-exist",
   Reduce = "reduce"
 }
 

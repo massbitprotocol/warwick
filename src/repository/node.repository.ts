@@ -25,6 +25,17 @@ export class NodeRepository {
     })
   }
 
+  async findAllIn(ids: string[]): Promise<Node[]> {
+    return this.nodeRepository.find({
+      where: {
+        id: In(ids)
+      },
+      order: {
+        updatedAt: "ASC"
+      }
+    })
+  }
+
   async getAllActiveInZone(zone: string): Promise<Node[]> {
     return this.nodeRepository.find({
       where: {

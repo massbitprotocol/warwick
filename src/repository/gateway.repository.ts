@@ -46,6 +46,17 @@ export class GatewayRepository extends Repository<Gateway> {
     })
   }
 
+  async findAllIn(ids: string[]): Promise<Gateway[]> {
+    return this.repository.find({
+      where: {
+        id: In(ids)
+      },
+      order: {
+        updatedAt: "ASC"
+      }
+    })
+  }
+
   async getById(id: string): Promise<Gateway> {
     return this.repository.findOne({
       where: {

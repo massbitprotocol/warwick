@@ -22,6 +22,12 @@
     - each:
         rules: ["http", "http-success"]
         successPercent: 50
+      allFail:
+        rules: ["schedule-if-not-exist"]
+        schedule:
+          name: rtt-last-hit
+          useConfig: ["gwRtt"]
+          timer: 3600
       allSuccess:
         rules: ["change-status-running"]
 # Polkadot nodes
@@ -41,7 +47,7 @@
         rules: ["change-status-investigate", "schedule"]
         schedule:
           name: latest-block-last-hit
-          datasource: investigate-node
+          withDatasource: running-node
           useConfig: ["dotLatestBlock"]
           timer: 3600
       allSuccess:
@@ -56,7 +62,7 @@
         rules: ["change-status-investigate", "schedule"]
         schedule:
           name: latest-block-last-hit
-          datasource: investigate-node
+          withDatasource: running-node
           useConfig: ["dotLatestBlock"]
           timer: 3600
 
@@ -80,6 +86,13 @@
             field: blockNumber
     - each:
         rules: ["check-block-late"]
+      allFail:
+        rules: ["schedule-if-not-exist"]
+        schedule:
+          name: latest-block-last-hit
+          withDatasource: running-node
+          useConfig: ["dotLatestBlock"]
+          timer: 3600
       allSuccess:
         rules: ["change-status-running"]
 
@@ -102,7 +115,7 @@
         rules: ["change-status-investigate", "schedule"]
         schedule:
           name: latest-block-last-hit
-          datasource: investigate-node
+          withDatasource: running-node
           useConfig: ["ethLatestBlock"]
           timer: 3600
       allSuccess:
@@ -117,7 +130,7 @@
         rules: ["change-status-investigate", "schedule"]
         schedule:
           name: latest-block-last-hit
-          datasource: investigate-node
+          withDatasource: running-node
           useConfig: ["ethLatestBlock"]
           timer: 3600
 
@@ -143,5 +156,12 @@
             field: blockNumber
     - each:
         rules: ["check-block-late"]
+      allFail:
+        rules: ["schedule-if-not-exist"]
+        schedule:
+          name: latest-block-last-hit
+          withDatasource: running-node
+          useConfig: ["ethLatestBlock"]
+          timer: 3600
       allSuccess:
         rules: ["change-status-running"]

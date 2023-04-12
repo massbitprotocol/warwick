@@ -27,26 +27,10 @@ RUN yarn install
 
 
 COPY tsconfig.json tsconfig.build.json start-docker.sh ./
+COPY --from=builder /app/node_modules ./
 COPY --from=builder /app/dist ./
 
-RUN apt update && apt install vim dnsutils  rsync -y
+RUN apt update && apt install vim dnsutils curl -y 
 
 # CMD ["npm", "run" , "dbm:init", "&&","node", "src/main.js"]
 CMD ["node", "src/main.js"]
-
-#===
-
-# FROM --platform=linux/amd64 node:16 as development
-
-# WORKDIR /app
-
-# # Bundle app source
-# COPY package*.json ./
-
-# RUN npm install glob rimraf
-
-# RUN npm install --only=development
-
-# COPY . .
-
-# RUN npm run build

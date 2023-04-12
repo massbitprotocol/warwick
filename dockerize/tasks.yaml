@@ -1,0 +1,173 @@
+- name: rtt
+  cronTime: "*/10 * * * * *"
+  config:
+    useConfig: ["gwRtt"]
+    datasource: running-gateway
+    validates:
+    - each:
+        rules: ["http", "http-success"]
+        successPercent: 50
+      allFail:
+        rules: ["change-status-investigate", "schedule"]
+        schedule:
+          name: rtt-last-hit
+          useConfig: ["gwRtt"]
+          timer: 3600
+- name: rtt-investigate
+  cronTime: "0 */5 * * * *"
+  config:
+    useConfig: ["gwRtt"]
+    datasource: investigate-gateway
+    validates:
+    - each:
+        rules: ["http", "http-success"]
+        successPercent: 50
+      allFail:
+        rules: ["schedule-if-not-exist"]
+        schedule:
+          name: rtt-last-hit
+          useConfig: ["gwRtt"]
+          timer: 3600
+      allSuccess:
+        rules: ["change-status-running", "remove-from-scheduler"]
+        schedule:
+          name: rtt-last-hit
+# Polkadot nodes
+- name: latest-block
+  cronTime: "0 */1 * * * *"
+  config:
+    useConfig: ["dotLatestBlock"]
+    datasource: running-node
+    validates:
+    - each:
+        rules: ["http", "http-success", "map-response-field"]
+        mapFields:
+          blockNumber: "result.block.header.number"
+        successPercent: 100
+        maxBlockLate: 200
+      allFail:
+        rules: ["change-status-investigate", "schedule"]
+        schedule:
+          name: latest-block-last-hit
+          withDatasource: running-node
+          useConfig: ["dotLatestBlock"]
+          timer: 3600
+      allSuccess:
+        rules: ["reduce"]
+        mapShareFields:
+          maxBlock:
+            operator: max
+            field: blockNumber
+    - each:
+        rules: ["check-block-late"]
+      allFail:
+        rules: ["change-status-investigate", "schedule"]
+        schedule:
+          name: latest-block-last-hit
+          withDatasource: running-node
+          useConfig: ["dotLatestBlock"]
+          timer: 3600
+
+- name: latest-block-investigate
+  cronTime: "0 */5 * * * *"
+  config:
+    useConfig: ["dotLatestBlock"]
+    datasource: investigate-node
+    validates:
+    - each:
+        rules: ["http", "http-success", "map-response-field"]
+        mapFields:
+          blockNumber: "result.block.header.number"
+        successPercent: 100
+        maxBlockLate: 200
+      allSuccess:
+        rules: ["reduce"]
+        mapShareFields:
+          maxBlock:
+            operator: max
+            field: blockNumber
+    - each:
+        rules: ["check-block-late"]
+      allFail:
+        rules: ["schedule-if-not-exist"]
+        schedule:
+          name: latest-block-last-hit
+          withDatasource: running-node
+          useConfig: ["dotLatestBlock"]
+          timer: 3600
+      allSuccess:
+        rules: ["change-status-running", "remove-from-scheduler"]
+        schedule:
+          name: latest-block-last-hit
+
+# Ethereum nodes
+- name: latest-block
+  cronTime: "0 */1 * * * *"
+  config:
+    useConfig: ["ethLatestBlock"]
+    datasource: running-node
+    validates:
+    - each:
+        rules: ["http", "http-success", "map-response-field"]
+        mapFields:
+          blockNumber:
+            operator: parse-hex
+            field: "result.number"
+        successPercent: 100
+        maxBlockLate:  1200
+      allFail:
+        rules: ["change-status-investigate", "schedule"]
+        schedule:
+          name: latest-block-last-hit
+          withDatasource: running-node
+          useConfig: ["ethLatestBlock"]
+          timer: 3600
+      allSuccess:
+        rules: ["reduce"]
+        mapShareFields:
+          maxBlock:
+            operator: max
+            field: blockNumber
+    - each:
+        rules: ["check-block-late"]
+      allFail:
+        rules: ["change-status-investigate", "schedule"]
+        schedule:
+          name: latest-block-last-hit
+          withDatasource: running-node
+          useConfig: ["ethLatestBlock"]
+          timer: 3600
+
+- name: latest-block-investigate
+  cronTime: "0 */5 * * * *"
+  config:
+    useConfig: ["ethLatestBlock"]
+    datasource: investigate-node
+    validates:
+    - each:
+        rules: ["http", "http-success", "map-response-field"]
+        mapFields:
+          blockNumber:
+            operator: parse-hex
+            field: "result.number"
+        successPercent: 100
+        maxBlockLate:  1200
+      allSuccess:
+        rules: ["reduce"]
+        mapShareFields:
+          maxBlock:
+            operator: max
+            field: blockNumber
+    - each:
+        rules: ["check-block-late"]
+      allFail:
+        rules: ["schedule-if-not-exist"]
+        schedule:
+          name: latest-block-last-hit
+          withDatasource: running-node
+          useConfig: ["ethLatestBlock"]
+          timer: 3600
+      allSuccess:
+        rules: ["change-status-running", "remove-from-scheduler"]
+        schedule:
+          name: latest-block-last-hit

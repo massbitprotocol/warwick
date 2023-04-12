@@ -32,7 +32,8 @@ services:
       - TASK_CONFIG_LOCATION=/massbit/massbitroute/app/src/services/tasks.yaml
       - SHARE_CONFIG_LOCATION=/massbit/massbitroute/app/src/services/shareConfigs.yaml
     volumes:
-      - ./gwman.yaml:/massbit/massbitroute/app/src/services/gwman.yaml:rw
+      - ./tasks.yaml:/massbit/massbitroute/app/src/services/tasks.yaml
+      - ./shareConfigs.yaml:/massbit/massbitroute/app/src/services/shareConfigs.yaml
     extra_hosts:
       - "hostmaster.massbitroute.net:172.24.99.254"
       - "ns1.massbitroute.net:172.24.99.254"

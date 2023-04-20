@@ -52,4 +52,6 @@ export class Gateway extends BaseTable {
   @Column()
   quotaCommit: number
 
+  ignore: boolean
+
 }

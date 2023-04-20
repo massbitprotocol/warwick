@@ -22,7 +22,7 @@ export class TaskConfig {
     blockchains: EBlockChain[]
 
     @Expose()
-    http: HttpConfig
+    http: HttpConfig[]
 
     @Expose()
     validates: TaskValidation[]

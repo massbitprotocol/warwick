@@ -1,8 +1,8 @@
 import { registerAs } from "@nestjs/config";
-import { classToPlain, instanceToPlain, plainToClass } from "class-transformer";
-import { ApplicationTask, SchedulerTask } from "src/models/scheduler-task.model";
+import { instanceToPlain, plainToClass } from "class-transformer";
+import { ApplicationTask, NetWorkConfig, SchedulerTask } from "src/models/scheduler-task.model";
 import { TaskConfig } from "src/models/share-config.model";
-import { configTasks, ConfigMode, TASK_CONFIG, TASK_CONFIG_LOCATION, CONFIG_MODE, SHARE_CONFIG_LOCATION, SHARE_CONFIG } from "./consts";
+import { configTasks, ConfigMode, TASK_CONFIG, TASK_CONFIG_LOCATION, CONFIG_MODE, SHARE_CONFIG_LOCATION, SHARE_CONFIG, BLOCK_CHAIN_CONFIG_LOCATION, BLOCK_CHAIN_CONFIG } from "./consts";
 const yaml = require("js-yaml");
 const fs = require("fs");
 
@@ -28,17 +28,19 @@ export const compileConfig = (taskConfig: TaskConfig, shareConfigs: Map<string, 
 }
 
 export default registerAs(configTasks, () => {
-    let taskConfigs = [], shareConfigs = {}
+    let taskConfigs = [], shareConfigs = {}, blockchainConfigs = {}
     switch (CONFIG_MODE) {
         case ConfigMode.FILE:
             console.log("Load task config from file")
             taskConfigs = yaml.load(fs.readFileSync(TASK_CONFIG_LOCATION, 'utf8'));
-            shareConfigs = yaml.load(fs.readFileSync(SHARE_CONFIG_LOCATION, 'utf8'))
+            shareConfigs = yaml.load(fs.readFileSync(SHARE_CONFIG_LOCATION, 'utf8'));
+            blockchainConfigs = yaml.load(fs.readFileSync(BLOCK_CHAIN_CONFIG_LOCATION, 'utf8'));
             break
         case ConfigMode.ENV:
             console.log("Load task config from env")
             taskConfigs = yaml.load(TASK_CONFIG);
             shareConfigs = yaml.load(SHARE_CONFIG);
+            blockchainConfigs = yaml.load(BLOCK_CHAIN_CONFIG);
             break
         default:
             break
@@ -53,5 +55,13 @@ export default registerAs(configTasks, () => {
         taskConfig.config = compileConfig(taskConfig.config, shareConfigs as Map<string, TaskConfig>)
         return taskConfig;
     })
-    return new ApplicationTask(shareConfigs as Map<string, TaskConfig>, taskConfigs);
+    blockchainConfigs = Object.keys(blockchainConfigs).reduce((acc: Map<string, NetWorkConfig>, blockchain: string) => {
+        acc.set(blockchain, plainToClass(NetWorkConfig, blockchainConfigs[blockchain]))
+        return acc;
+    }, new Map<string, NetWorkConfig>())
+    const appConfig = new ApplicationTask(
+        shareConfigs as Map<string, TaskConfig>,
+        blockchainConfigs as Map<string, NetWorkConfig>,
+        taskConfigs);
+    return appConfig;
 })

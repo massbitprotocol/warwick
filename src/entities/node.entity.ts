@@ -67,4 +67,6 @@ export class Node extends BaseTable {
   ip: string;
 
   warning?: string;
+
+  ignore: boolean
 }

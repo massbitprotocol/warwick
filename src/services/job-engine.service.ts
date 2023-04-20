@@ -1,5 +1,4 @@
 import { InjectQueue } from "@nestjs/bull";
-import { OnModuleInit } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { AxiosError, AxiosResponse } from "axios";
 import { Queue } from "bull";
@@ -7,9 +6,8 @@ import { instanceToPlain, plainToInstance } from "class-transformer";
 import { BaseApi } from "src/apis/base.api";
 import { ContextLogger } from "src/common/context.logger";
 import { configTasks, DatasourceType, EBlockChain, EGatewayStatus, ENodeStatus, EOperateStatus, MONITOR_TASKS_EVENT_QUEUE, ReduceOperator, REQUEST_SCHEME, ValidateRule } from "src/configs/consts";
-import { compileConfig } from "src/configs/tasks.config";
 import { ReduceMapField, TaskValidation, TaskValidationRule } from "src/models/rule.model";
-import { ApplicationTask, SchedulerTask } from "src/models/scheduler-task.model";
+import { ApplicationTask, NetWorkConfig, SchedulerTask } from "src/models/scheduler-task.model";
 import { TaskConfig } from "src/models/share-config.model";
 import { GatewayRepository } from "src/repository/gateway.repository";
 import { NodeRepository } from "src/repository/node.repository";
@@ -21,10 +19,11 @@ const _ = require("lodash");
 export class JobEngineService {
   private allContexts: DatasourceContext[]
   private jobContext = {}
-  public config: TaskConfig
-  public shareConfigs: Map<string, TaskConfig>
-  public name: string
-  public blockchain: EBlockChain
+  private config: TaskConfig
+  private shareConfigs: Map<string, TaskConfig>
+  private blockchainConfigs: Map<string, NetWorkConfig>
+  private name: string
+  private blockchain: EBlockChain
   public logger: ContextLogger
   constructor(
     private readonly configService: ConfigService,
@@ -37,6 +36,7 @@ export class JobEngineService {
   ) {
     const appTasks = this.configService.get<ApplicationTask>(configTasks)
     this.shareConfigs = appTasks.shareConfigs
+    this.blockchainConfigs = appTasks.blockchainConfigs
   }
 
   public setData(name: string, blockchain: EBlockChain, config: TaskConfig) {
@@ -88,18 +88,22 @@ export class JobEngineService {
     rule: ValidateRule,
     context: DatasourceContext): Promise<DatasourceContext> {
     try {
+      let blocknet = context.datasource?.blockchain + "-" + context.datasource?.network;
       switch (rule) {
         case ValidateRule.Http:
-          for (let i = 0; i < this.config.http.attemptNumber; i++) {
+          // get http config from name
+          const http = this.config.http.find((i) => i.name == validationRule.http);
+          if (!http) throw new Error(`not found http rule ${validationRule.http}`)
+          for (let i = 0; i < http.attemptNumber; i++) {
             // TODO: handle fail request with status != 2xx
             const res = await this.baseApi.doHttpRequest({
-              ...this.config.http,
-              url: this.templateService.bindTemplate(this.config.http.url, {
+              ...http,
+              url: this.templateService.bindTemplate(http.url, {
                 scheme: REQUEST_SCHEME,
                 ...context.datasource
               }),
-              headers: Object.keys(this.config.http.headers || {}).reduce((acc, header) => {
-                acc[header] = this.templateService.bindTemplate(this.config.http.headers[header], {
+              headers: Object.keys(http.headers || {}).reduce((acc, header) => {
+                acc[header] = this.templateService.bindTemplate(http.headers[header], {
                   ...context.datasource
                 })
                 return acc
@@ -115,63 +119,87 @@ export class JobEngineService {
           }
           break
         case ValidateRule.MapResponseField:
-          Object.keys(validationRule.mapFields).forEach((mapField) => {
-            const rule = validationRule.mapFields[mapField] as ReduceMapField
-            let val = _.get((context.responses[0] as AxiosResponse).data, rule.field)
+          validationRule.mapFields.forEach((rule: ReduceMapField) => {
+            let val = _.get((context.responses[rule.from || 0] as AxiosResponse).data, rule.field)
             switch (rule.operator) {
               case ReduceOperator.ParseHex:
                 val = parseInt(val, 16)
                 break
             }
-            context.context[mapField] = val;
+            let fieldName = this.templateService.bindTemplate(rule.name, {
+              ...context.datasource
+            })
+            context.context[fieldName] = val;
           })
           break
+        case ValidateRule.CheckChainId:
+          let chainId = this.blockchainConfigs.get(blocknet)?.chainId
+          if (context.context["chainId"] != chainId) {
+            this.logger.warn(`Chain id of node ${context.datasource.id} is not ${chainId} (${context.context["chainId"]} instead)`)
+            context.success = false
+          }
+          break
         case ValidateRule.CheckBlockLate:
-          if ((context.context["blockNumber"] - this.jobContext["maxBlock"]) > validationRule.maxBlockLate) {
-            this.logger.debug(`Block of node ${context.datasource.id} was late: ${context.context["blockNumber"]} < ${this.jobContext["maxBlock"]}`)
+          if (this.blockchainConfigs.has(blocknet)) {
+            let blockchainConfig = this.blockchainConfigs.get(blocknet)
+            let maxBlockField = this.templateService.bindTemplate("maxBlock-{{blockchain}}-{{network}}", context.datasource),
+            blockNumberField = this.templateService.bindTemplate("blockNumber-{{blockchain}}-{{network}}", context.datasource)
+            let blockLate = this.jobContext[maxBlockField] - context.context[blockNumberField]
+            if (blockLate > blockchainConfig.maxBlockLate) {
+              this.logger.warn(`Block of node ${context.datasource.id} was late ${blockLate} block(s): ${context.context[blockNumberField]} < ${this.jobContext[maxBlockField]}`)
+              context.success = false
+            }
+          } else {
+            this.logger.warn(`[${context.datasource.id}] Blockchain ${blocknet} is not supported`);
             context.success = false
           }
           break
         case ValidateRule.ChangeStatusInvestigate:
-          this.logger.log(`Change status of datasource ${this.config.datasource}, id=${context.datasource.id} to ${EOperateStatus.INVESTIGATE}`)
-          switch (this.config.datasource) {
-            case DatasourceType.RunningGateway:
-            case DatasourceType.InvestigateGateway:
-              await this.gatewayRepository.setStatus(context.datasource.id, EGatewayStatus.UNHEALTHY, EOperateStatus.INVESTIGATE)
-              break
-            case DatasourceType.RunningNode:
-            case DatasourceType.InvestigateNode:
-              await this.nodeRepository.setStatus(context.datasource.id, ENodeStatus.UNHEALTHY, EOperateStatus.INVESTIGATE)
-              break
-            default: throw new Error(`Not support datasource ${this.config.datasource} on rule ${ValidateRule.ChangeStatusInvestigate}`)
+          if (!context.datasource.ignore) {
+            this.logger.log(`Change status of datasource ${this.config.datasource}, id=${context.datasource.id} to ${EOperateStatus.INVESTIGATE}`)
+            switch (this.config.datasource) {
+              case DatasourceType.RunningGateway:
+              case DatasourceType.InvestigateGateway:
+                await this.gatewayRepository.setStatus(context.datasource.id, EGatewayStatus.UNHEALTHY, EOperateStatus.INVESTIGATE)
+                break
+              case DatasourceType.RunningNode:
+              case DatasourceType.InvestigateNode:
+                await this.nodeRepository.setStatus(context.datasource.id, ENodeStatus.UNHEALTHY, EOperateStatus.INVESTIGATE)
+                break
+              default: throw new Error(`Not support datasource ${this.config.datasource} on rule ${ValidateRule.ChangeStatusInvestigate}`)
+            }
           }
           break
         case ValidateRule.ChangeStatusReported:
-          this.logger.log(`Change status of datasource ${this.config.datasource}, id=${context.datasource.id} to ${EOperateStatus.REPORTED}`)
-          switch (this.config.datasource) {
-            case DatasourceType.RunningGateway:
-            case DatasourceType.InvestigateGateway:
-              await this.gatewayRepository.setStatus(context.datasource.id, EGatewayStatus.UNHEALTHY, EOperateStatus.REPORTED)
-              break
-            case DatasourceType.RunningNode:
-            case DatasourceType.InvestigateNode:
-              await this.nodeRepository.setStatus(context.datasource.id, ENodeStatus.UNHEALTHY, EOperateStatus.REPORTED)
-              break
-            default: throw new Error(`Not support datasource ${this.config.datasource} on rule ${ValidateRule.ChangeStatusReported}`)
+          if (!context.datasource.ignore) {
+            this.logger.log(`Change status of datasource ${this.config.datasource}, id=${context.datasource.id} to ${EOperateStatus.REPORTED}`)
+            switch (this.config.datasource) {
+              case DatasourceType.RunningGateway:
+              case DatasourceType.InvestigateGateway:
+                await this.gatewayRepository.setStatus(context.datasource.id, EGatewayStatus.UNHEALTHY, EOperateStatus.REPORTED)
+                break
+              case DatasourceType.RunningNode:
+              case DatasourceType.InvestigateNode:
+                await this.nodeRepository.setStatus(context.datasource.id, ENodeStatus.UNHEALTHY, EOperateStatus.REPORTED)
+                break
+              default: throw new Error(`Not support datasource ${this.config.datasource} on rule ${ValidateRule.ChangeStatusReported}`)
+            }
           }
           break
         case ValidateRule.ChangeStatusRunning:
-          this.logger.log(`Change status of datasource ${this.config.datasource}, id=${context.datasource.id} to ${EOperateStatus.RUNNING}`)
-          switch (this.config.datasource) {
-            case DatasourceType.RunningGateway:
-            case DatasourceType.InvestigateGateway:
-              await this.gatewayRepository.setStatus(context.datasource.id, EGatewayStatus.STAKED, EOperateStatus.RUNNING)
-              break
-            case DatasourceType.RunningNode:
-            case DatasourceType.InvestigateNode:
-              await this.nodeRepository.setStatus(context.datasource.id, ENodeStatus.STAKED, EOperateStatus.RUNNING)
-              break
-            default: throw new Error(`Not support datasource ${this.config.datasource} on rule ${ValidateRule.ChangeStatusRunning}`)
+          if (!context.datasource.ignore) {
+            this.logger.log(`Change status of datasource ${this.config.datasource}, id=${context.datasource.id} to ${EOperateStatus.RUNNING}`)
+            switch (this.config.datasource) {
+              case DatasourceType.RunningGateway:
+              case DatasourceType.InvestigateGateway:
+                await this.gatewayRepository.setStatus(context.datasource.id, EGatewayStatus.STAKED, EOperateStatus.RUNNING)
+                break
+              case DatasourceType.RunningNode:
+              case DatasourceType.InvestigateNode:
+                await this.nodeRepository.setStatus(context.datasource.id, ENodeStatus.STAKED, EOperateStatus.RUNNING)
+                break
+              default: throw new Error(`Not support datasource ${this.config.datasource} on rule ${ValidateRule.ChangeStatusRunning}`)
+            }
           }
           break
       }
@@ -182,17 +210,19 @@ export class JobEngineService {
     return context;
   }
 
-  async reduce(targetField: string, rule: ReduceMapField, contexts: DatasourceContext[]) {
+  async reduce(rule: ReduceMapField, contexts: DatasourceContext[]) {
     switch (rule.operator) {
       case ReduceOperator.Max:
-        let max = 0;
         contexts.forEach((context) => {
-          let val = _.get(context.context, rule.field)
+          let targetFieldName = this.templateService.bindTemplate(rule.name, context.datasource),
+          fieldName = this.templateService.bindTemplate(rule.field, context.datasource)
+          let max = targetFieldName in this.jobContext ? this.jobContext[targetFieldName] : 0;
+          let val = _.get(context.context, fieldName) != undefined ? _.get(context.context, fieldName) : 0
           if (val > max) {
             max = val;
           }
+          this.jobContext[targetFieldName] = max;
         })
-        this.jobContext[targetField] = max;
         break
     }
   }
@@ -287,9 +317,8 @@ export class JobEngineService {
       const ctxs = contexts.filter((context) => context.success == success)
       switch (rule) {
         case ValidateRule.Reduce:
-          Object.keys(validationRule.mapShareFields).forEach((targetField) => {
-            const rule = validationRule.mapShareFields[targetField]
-            this.reduce(targetField, rule, ctxs)
+          validationRule.mapShareFields.forEach((rule: ReduceMapField) => {
+            this.reduce(rule, ctxs)
           })
           this.logger.debug(JSON.stringify(this.jobContext))
           break

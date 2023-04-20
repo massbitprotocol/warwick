@@ -19,6 +19,7 @@ services:
       - /app/node_modules
       - ./config/tasks.yaml:/massbit/massbitroute/app/src/services/tasks.yaml
       - ./config/shareConfigs.yaml:/massbit/massbitroute/app/src/services/shareConfigs.yaml
+      - ./config/blockchainConfigs.yaml:/massbit/massbitroute/app/src/services/blockchainConfigs.yaml
     extra_hosts:
     - "host.docker.internal:host-gateway"
     restart: unless-stopped

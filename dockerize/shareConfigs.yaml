@@ -1,5 +1,6 @@
 gwRtt:
   http:
+  - name: default
     timeout: 3000
     url: "{{scheme}}://{{ip}}/_rtt"
     method: GET
@@ -9,6 +10,7 @@ gwRtt:
   validates:
   - each:
       rules: ["http", "http-success"]
+      http: default
       successPercent: 50
     allFail:
       rules: ["change-status-reported"]
@@ -18,6 +20,20 @@ dotLatestBlock:
   blockchains: ["dot"]
   type: rpc
   http:
+  - name: check-chainid
+    timeout: 5000
+    url: "{{dataSource}}"
+    method: POST
+    attemptNumber: 1
+    headers:
+      "content-type": application/json
+      "X-Api-Key": "{{appKey}}"
+    body:
+      jsonrpc: "2.0"
+      method: "system_chain"
+      params: []
+      id: 1
+  - name: check-block
     timeout: 5000
     url: "{{dataSource}}"
     method: POST
@@ -32,19 +48,31 @@ dotLatestBlock:
       id: 1
   validates:
   - each:
-      rules: ["http", "http-success", "map-response-field"]
+      rules: ["http", "http-success", "map-response-field", "check-chain-id"]
+      http: check-chainid
       mapFields:
-        blockNumber: "result.block.header.number"
+        - name: chainId
+          field: "result"
       successPercent: 100
-      maxBlockLate: 200
+    allFail:
+      rules: ["change-status-reported"]
+  - each:
+      rules: ["http", "http-success", "map-response-field"]
+      http: check-block
+      mapFields:
+        - name: "blockNumber-{{blockchain}}-{{network}}"
+          from: 1
+          operator: parse-hex
+          field: "result.block.header.number"
+      successPercent: 100
     allFail:
       rules: ["change-status-reported"]
     allSuccess:
       rules: ["reduce"]
       mapShareFields:
-        maxBlock:
+        - name: "maxBlock-{{blockchain}}-{{network}}"
           operator: max
-          field: blockNumber
+          field: "blockNumber-{{blockchain}}-{{network}}"
   - each:
       rules: ["check-block-late"]
     allFail:
@@ -52,16 +80,30 @@ dotLatestBlock:
     allSuccess:
       rules: ["change-status-running"]
 ethLatestBlock:
-  blockchains: ["eth"]
+  blockchains: ["eth", "bsc"]
   type: rpc
   http:
+  - name: check-chainid
     timeout: 5000
     url: "{{dataSource}}"
     method: POST
     attemptNumber: 1
     headers:
       "content-type": application/json
-      "X-Api-Key": "{{appKey}}"
+      # "X-Api-Key": "{{appKey}}"
+    body:
+      jsonrpc: "2.0"
+      method: "eth_chainId"
+      params: []
+      id: 1
+  - name: check-block
+    timeout: 5000
+    url: "{{dataSource}}"
+    method: POST
+    attemptNumber: 1
+    headers:
+      "content-type": application/json
+      # "X-Api-Key": "{{appKey}}"
     body:
       jsonrpc: "2.0"
       method: "eth_getBlockByNumber"
@@ -69,21 +111,32 @@ ethLatestBlock:
       id: 1
   validates:
   - each:
-      rules: ["http", "http-success", "map-response-field"]
+      rules: ["http", "http-success", "map-response-field", "check-chain-id"]
+      http: check-chainid
       mapFields:
-        blockNumber:
+        - name: chainId
+          operator: parse-hex
+          field: "result"
+      successPercent: 100
+    allFail:
+      rules: ["change-status-reported"]
+  - each:
+      rules: ["http", "http-success", "map-response-field"]
+      http: check-block
+      mapFields:
+        - name: "blockNumber-{{blockchain}}-{{network}}"
+          from: 1
           operator: parse-hex
           field: "result.number"
       successPercent: 100
-      maxBlockLate:  1200
     allFail:
       rules: ["change-status-reported"]
     allSuccess:
       rules: ["reduce"]
       mapShareFields:
-        maxBlock:
+        - name: "maxBlock-{{blockchain}}-{{network}}"
           operator: max
-          field: blockNumber
+          field: "blockNumber-{{blockchain}}-{{network}}"
   - each:
       rules: ["check-block-late"]
     allFail:

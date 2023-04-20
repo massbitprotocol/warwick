@@ -4,6 +4,12 @@ import { TaskConfig } from "./share-config.model"
 
 export class ReduceMapField {
     @Expose()
+    name: string
+
+    @Expose()
+    from: number
+
+    @Expose()
     operator: ReduceOperator
 
     @Expose()
@@ -15,16 +21,16 @@ export class TaskValidationRule {
     rules: ValidateRule[]
 
     @Expose()
-    mapFields: Map<string, ReduceMapField>
+    http: string
 
     @Expose()
-    mapShareFields: Map<string, ReduceMapField>
+    mapFields: ReduceMapField[]
+
+    @Expose()
+    mapShareFields: ReduceMapField[]
 
     @Expose()
     successPercent: number
-
-    @Expose()
-    maxBlockLate: number
 
     @Expose()
     schedule: TaskConfig
@@ -42,6 +48,9 @@ export class TaskValidation {
 }
 
 export class HttpConfig {
+    @Expose()
+    name: string
+
     @Expose()
     timeout: number
 

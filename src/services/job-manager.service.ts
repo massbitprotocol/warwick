@@ -19,6 +19,7 @@ export class JobManagerService implements OnModuleInit {
   ) { }
 
   onModuleInit() {
+    this.logger.log("Init tasks...")
     this.appTasks = this.configService.get<ApplicationTask>(configTasks)
     this.appTasks.tasks.forEach((task) => {
       (task.config.blockchains || [""]).forEach(async(blockchain) => {

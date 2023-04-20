@@ -1,0 +1,27 @@
+dot-mainnet:
+  chainId: Polkadot
+  maxBlockLate: 2
+# ethereum
+eth-mainnet:
+  chainId: 1
+  maxBlockLate: 2
+eth-goerli:
+  chainId: 5
+  maxBlockLate: 2
+eth-sepolia:
+  chainId: 11155111
+  maxBlockLate: 2
+# bsc
+bsc-mainnet:
+  chainId: 56
+  maxBlockLate: 2
+bsc-testnet:
+  chainId: 97
+  maxBlockLate: 2
+# bsc
+matic-mainnet:
+  chainId: 137
+  maxBlockLate: 2
+matic-mumbai:
+  chainId: 80001
+  maxBlockLate: 2

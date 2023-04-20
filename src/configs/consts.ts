@@ -15,6 +15,8 @@ export const TASK_CONFIG = process.env.TASK_CONFIG;
 export const TASK_CONFIG_LOCATION = process.env.TASK_CONFIG_LOCATION;
 export const SHARE_CONFIG = process.env.SHARE_CONFIG;
 export const SHARE_CONFIG_LOCATION = process.env.SHARE_CONFIG_LOCATION;
+export const BLOCK_CHAIN_CONFIG = process.env.BLOCK_CHAIN_CONFIG;
+export const BLOCK_CHAIN_CONFIG_LOCATION = process.env.BLOCK_CHAIN_CONFIG_LOCATION;
 
 export enum EStatus {
   ACTIVE = 1,
@@ -137,6 +139,7 @@ export enum ValidateRule{
   ChangeStatusInvestigate = "change-status-investigate",
   ChangeStatusRunning = "change-status-running",
   ChangeStatusReported = "change-status-reported",
+  CheckChainId = "check-chain-id",
   CheckBlockLate = "check-block-late",
   Schedule = "schedule",
   ScheduleIfNotExist = "schedule-if-not-exist",
@@ -146,5 +149,6 @@ export enum ValidateRule{
 
 export enum ReduceOperator{
   Max = "max",
-  ParseHex = "parse-hex"
+  ParseHex = "parse-hex",
+  Set = "set"
 }

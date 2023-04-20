@@ -4,7 +4,7 @@ dotenv.config({
   path: `./config/.env${process.env.NODE_ENV ? `.${process.env.NODE_ENV}` : ''}`,
 });
 console.log("Running for env " + process.env.NODE_ENV)
-import { Logger, MiddlewareConsumer, Module, NestModule, RequestMethod } from '@nestjs/common';
+import { MiddlewareConsumer, Module, NestModule, RequestMethod } from '@nestjs/common';
 import { ScheduleModule } from '@nestjs/schedule';
 import { TypeOrmModule, TypeOrmModuleOptions } from '@nestjs/typeorm';
 import { Gateway } from './entities/gateway.entity';
@@ -24,10 +24,6 @@ import { LoggerMiddleware } from './middlewares/logger.middleware';
 import { AllExceptionsFilter } from './filters/exception.filter';
 import { APP_FILTER } from '@nestjs/core';
 import { HttpModule } from '@nestjs/axios';
-import { OnModuleInit } from '@nestjs/common/interfaces';
-import { HttpService } from '@nestjs/axios/dist/http.service';
-import * as AxiosLogger from 'axios-logger';
-import { InternalAxiosRequestConfig } from 'axios';
 import { JobManagerService } from './services/job-manager.service';
 
 @Module({
@@ -71,7 +67,6 @@ import { JobManagerService } from './services/job-manager.service';
     FileService,
     GatewayRepository,
     NodeRepository,
-    // DbListener,
     MonitorTaskConsumer,
     BaseApi,
     JobManagerService,
@@ -82,19 +77,7 @@ import { JobManagerService } from './services/job-manager.service';
   ],
 })
 
-export class AppModule implements NestModule, OnModuleInit {
-  private readonly logger = new Logger(AppModule.name)
-  constructor(
-    private readonly httpService: HttpService
-  ) { }
-  onModuleInit() {
-    AxiosLogger.setGlobalConfig({
-      logger: (str) => this.logger.debug(str),
-    })
-    this.httpService.axiosRef.interceptors.response.use((request) => AxiosLogger.responseLogger(request, {
-      data: false
-    }))
-  }
+export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
     consumer
       .apply(LoggerMiddleware)

@@ -32,9 +32,18 @@ export class SchedulerTask {
   data: any
 }
 
+export class NetWorkConfig {
+  @Expose()
+  chainId: number | string
+
+  @Expose()
+  maxBlockLate: number
+}
+
 export class ApplicationTask {
   constructor(
     public readonly shareConfigs: Map<string, TaskConfig>,
+    public readonly blockchainConfigs: Map<string, NetWorkConfig>,
     public readonly tasks: SchedulerTask[]
   ) {}
 }

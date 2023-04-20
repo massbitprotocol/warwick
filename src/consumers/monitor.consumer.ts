@@ -54,6 +54,9 @@ export class MonitorTaskConsumer implements OnModuleInit {
     }
     if (schedulerTask.config.withDatasource) {
       const additionalDatasources = await engine.getDatasource(schedulerTask.config.withDatasource);
+      additionalDatasources.forEach((datasource) => {
+        datasource.ignore = true
+      })
       this.logger.debug(`Running with ${additionalDatasources.length} datasource(s)!`)
       schedulerTask.data = [...schedulerTask.data, ...additionalDatasources]
     }

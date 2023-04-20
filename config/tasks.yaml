@@ -6,6 +6,7 @@
     validates:
     - each:
         rules: ["http", "http-success"]
+        http: default
         successPercent: 50
       allFail:
         rules: ["change-status-investigate", "schedule"]
@@ -21,6 +22,7 @@
     validates:
     - each:
         rules: ["http", "http-success"]
+        http: default
         successPercent: 50
       allFail:
         rules: ["schedule-if-not-exist"]
@@ -40,11 +42,32 @@
     datasource: running-node
     validates:
     - each:
-        rules: ["http", "http-success", "map-response-field"]
-        mapFields:
-          blockNumber: "result.block.header.number"
+        rules: ["http", "http-success"]
+        http: check-chainid
         successPercent: 100
-        maxBlockLate: 200
+      allFail:
+        rules: ["change-status-investigate", "schedule"]
+        schedule:
+          name: latest-block-last-hit
+          withDatasource: running-node
+          useConfig: ["dotLatestBlock"]
+          timer: 600
+    - each:
+        rules: ["map-response-field", "check-chain-id"]
+        mapFields:
+          - name: chainId
+            field: "result"
+      allFail:
+        rules: ["change-status-reported"]
+    - each:
+        rules: ["http", "http-success", "map-response-field"]
+        http: check-block
+        mapFields:
+          - name: "blockNumber-{{blockchain}}-{{network}}"
+            from: 1
+            operator: parse-hex
+            field: "result.block.header.number"
+        successPercent: 100
       allFail:
         rules: ["change-status-investigate", "schedule"]
         schedule:
@@ -55,9 +78,9 @@
       allSuccess:
         rules: ["reduce"]
         mapShareFields:
-          maxBlock:
+          - name: "maxBlock-{{blockchain}}-{{network}}"
             operator: max
-            field: blockNumber
+            field: "blockNumber-{{blockchain}}-{{network}}"
     - each:
         rules: ["check-block-late"]
       allFail:
@@ -75,17 +98,38 @@
     datasource: investigate-node
     validates:
     - each:
-        rules: ["http", "http-success", "map-response-field"]
-        mapFields:
-          blockNumber: "result.block.header.number"
+        rules: ["http", "http-success"]
+        http: check-chainid
         successPercent: 100
-        maxBlockLate: 200
+      allFail:
+        rules: ["schedule-if-not-exist"]
+        schedule:
+          name: latest-block-last-hit
+          withDatasource: running-node
+          useConfig: ["dotLatestBlock"]
+          timer: 600
+    - each:
+        rules: ["map-response-field", "check-chain-id"]
+        mapFields:
+          - name: chainId
+            field: "result"
+      allFail:
+        rules: ["change-status-reported"]
+    - each:
+        rules: ["http", "http-success", "map-response-field"]
+        http: check-block
+        mapFields:
+          - name: "blockNumber-{{blockchain}}-{{network}}"
+            from: 1
+            operator: parse-hex
+            field: "result.block.header.number"
+        successPercent: 100
       allSuccess:
         rules: ["reduce"]
         mapShareFields:
-          maxBlock:
+          - name: "maxBlock-{{blockchain}}-{{network}}"
             operator: max
-            field: blockNumber
+            field: "blockNumber-{{blockchain}}-{{network}}"
     - each:
         rules: ["check-block-late"]
       allFail:
@@ -108,13 +152,33 @@
     datasource: running-node
     validates:
     - each:
-        rules: ["http", "http-success", "map-response-field"]
+        rules: ["http", "http-success"]
+        http: check-chainid
+        successPercent: 100
+      allFail:
+        rules: ["change-status-investigate", "schedule"]
+        schedule:
+          name: latest-block-last-hit
+          withDatasource: running-node
+          useConfig: ["ethLatestBlock"]
+          timer: 600
+    - each:
+        rules: ["map-response-field", "check-chain-id"]
         mapFields:
-          blockNumber:
+          - name: chainId
+            operator: parse-hex
+            field: "result"
+      allFail:
+        rules: ["change-status-reported"]
+    - each:
+        rules: ["http", "http-success", "map-response-field"]
+        http: check-block
+        mapFields:
+          - name: "blockNumber-{{blockchain}}-{{network}}"
+            from: 1
             operator: parse-hex
             field: "result.number"
         successPercent: 100
-        maxBlockLate:  1200
       allFail:
         rules: ["change-status-investigate", "schedule"]
         schedule:
@@ -125,9 +189,9 @@
       allSuccess:
         rules: ["reduce"]
         mapShareFields:
-          maxBlock:
+          - name: "maxBlock-{{blockchain}}-{{network}}"
             operator: max
-            field: blockNumber
+            field: "blockNumber-{{blockchain}}-{{network}}"
     - each:
         rules: ["check-block-late"]
       allFail:
@@ -145,19 +209,39 @@
     datasource: investigate-node
     validates:
     - each:
-        rules: ["http", "http-success", "map-response-field"]
+        rules: ["http", "http-success"]
+        http: check-chainid
+        successPercent: 100
+      allFail:
+        rules: ["schedule-if-not-exist"]
+        schedule:
+          name: latest-block-last-hit
+          withDatasource: running-node
+          useConfig: ["ethLatestBlock"]
+          timer: 600
+    - each:
+        rules: ["map-response-field", "check-chain-id"]
         mapFields:
-          blockNumber:
+          - name: chainId
+            operator: parse-hex
+            field: "result"
+      allFail:
+        rules: ["change-status-reported"]
+    - each:
+        rules: ["http", "http-success", "map-response-field"]
+        http: check-block
+        mapFields:
+          - name: "blockNumber-{{blockchain}}-{{network}}"
+            from: 1
             operator: parse-hex
             field: "result.number"
         successPercent: 100
-        maxBlockLate:  1200
       allSuccess:
         rules: ["reduce"]
         mapShareFields:
-          maxBlock:
+          - name: "maxBlock-{{blockchain}}-{{network}}"
             operator: max
-            field: blockNumber
+            field: "blockNumber-{{blockchain}}-{{network}}"
     - each:
         rules: ["check-block-late"]
       allFail:

@@ -6,8 +6,18 @@
     validates:
     - each:
         rules: ["http", "http-success"]
-        http: default
+        http: rtt
         successPercent: 50
+      allFail:
+        rules: ["change-status-investigate", "schedule"]
+        schedule:
+          name: rtt-last-hit
+          useConfig: ["gwRtt"]
+          timer: 3600
+    - each:
+        rules: ["http", "http-success"]
+        http: check-gateway
+        successPercent: 100
       allFail:
         rules: ["change-status-investigate", "schedule"]
         schedule:
@@ -22,8 +32,18 @@
     validates:
     - each:
         rules: ["http", "http-success"]
-        http: default
+        http: rtt
         successPercent: 50
+      allFail:
+        rules: ["schedule-if-not-exist"]
+        schedule:
+          name: rtt-last-hit
+          useConfig: ["gwRtt"]
+          timer: 3600
+    - each:
+        rules: ["http", "http-success"]
+        http: check-gateway
+        successPercent: 100
       allFail:
         rules: ["schedule-if-not-exist"]
         schedule:

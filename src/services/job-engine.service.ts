@@ -103,9 +103,7 @@ export class JobEngineService {
                 ...context.datasource
               }),
               headers: Object.keys(http.headers || {}).reduce((acc, header) => {
-                acc[header] = this.templateService.bindTemplate(http.headers[header], {
-                  ...context.datasource
-                })
+                acc[header] = this.templateService.bindTemplate(http.headers[header], context.datasource)
                 return acc
               }, {})
             })

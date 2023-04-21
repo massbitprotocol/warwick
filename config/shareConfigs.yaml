@@ -1,17 +1,31 @@
 gwRtt:
   http:
-  - name: default
+  - name: rtt
     timeout: 3000
     url: "{{scheme}}://{{ip}}/_rtt"
     method: GET
     attemptNumber: 3
     headers:
       Host: internal.massbitroute.net
+  - name: check-gateway
+    timeout: 3000
+    url: "{{scheme}}://{{ip}}/config/gw-check"
+    method: POST
+    attemptNumber: 1
+    headers:
+      Host: internal.massbitroute.net
+      Authorization: "{{#build_jwt appKey id}}{{/build_jwt}}"
   validates:
   - each:
       rules: ["http", "http-success"]
-      http: default
+      http: rtt
       successPercent: 50
+    allFail:
+      rules: ["change-status-reported"]
+  - each:
+      rules: ["http", "http-success"]
+      http: check-gateway
+      successPercent: 100
     allFail:
       rules: ["change-status-reported"]
     allSuccess:

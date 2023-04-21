@@ -18,7 +18,7 @@ bsc-mainnet:
 bsc-testnet:
   chainId: 97
   maxBlockLate: 2
-# bsc
+# matic
 matic-mainnet:
   chainId: 137
   maxBlockLate: 2

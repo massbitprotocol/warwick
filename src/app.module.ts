@@ -12,7 +12,7 @@ import { GatewayRepository } from './repository/gateway.repository';
 import { FileService } from './services/file.service';
 import { TemplateService } from './services/template.service';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { configDb, configRedis, MONITOR_TASKS_EVENT_QUEUE } from './configs/consts';
+import { configDb, configDbMonitor, configRedis, datasourceMonitorDb, MONITOR_TASKS_EVENT_QUEUE } from './configs/consts';
 import configurations from './configs';
 import { NodeRepository } from './repository/node.repository';
 import { Node } from './entities/node.entity';
@@ -25,6 +25,7 @@ import { AllExceptionsFilter } from './filters/exception.filter';
 import { APP_FILTER } from '@nestjs/core';
 import { HttpModule } from '@nestjs/axios';
 import { JobManagerService } from './services/job-manager.service';
+import { ResourceLog } from './entities/resource-log.mentity';
 
 @Module({
   imports: [
@@ -44,7 +45,19 @@ import { JobManagerService } from './services/job-manager.service';
       },
       inject: [ConfigService],
     }),
+    TypeOrmModule.forRootAsync({
+      name: datasourceMonitorDb,
+      inject: [ConfigService],
+      useFactory: async (configService: ConfigService) => {
+        const config = configService.get<TypeOrmModuleOptions>(configDbMonitor);
+        if (!config) {
+          throw new Error('Cannot start app without database config');
+        }
+        return config;
+      },
+    }),
     TypeOrmModule.forFeature([Gateway, Node]),
+    TypeOrmModule.forFeature([ResourceLog], datasourceMonitorDb),
     BullModule.forRootAsync({
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => {

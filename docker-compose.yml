@@ -13,6 +13,7 @@ services:
     - "3002:3000"
     environment:
       - DB_HOST=host.docker.internal
+      - DB_MONITOR_HOST=host.docker.internal
       - REDIS_HOST=host.docker.internal
     volumes:
       - .:/app

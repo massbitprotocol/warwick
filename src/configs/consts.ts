@@ -1,4 +1,5 @@
 export const configDb = 'db';
+export const configDbMonitor = 'db-monitor';
 export const configGithub = 'github';
 export const configGoogle = 'google';
 export const configAuth = 'auth';
@@ -6,6 +7,7 @@ export const configLogService = 'logservice';
 export const configCommon = 'common';
 export const configRedis = 'redis';
 export const configTasks = 'tasks';
+export const datasourceMonitorDb = 'monitor-db';
 
 export const MONITOR_TASKS_EVENT_QUEUE = "monitor-tasks";
 

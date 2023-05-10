@@ -59,9 +59,6 @@ export class Node extends BaseTable {
   @Column('smallint', { default: 0 })
   deleted?: EBoolean;
 
-  @Column('bigint')
-  quotaCommit: number;
-
   @Column('varchar')
   @Expose()
   ip: string;

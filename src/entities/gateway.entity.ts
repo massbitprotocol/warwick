@@ -49,9 +49,6 @@ export class Gateway extends BaseTable {
   @Expose()
   ip: string
 
-  @Column()
-  quotaCommit: number
-
   ignore: boolean
 
 }

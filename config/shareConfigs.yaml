@@ -22,14 +22,17 @@ gwRtt:
       successPercent: 50
     allFail:
       rules: ["change-status-reported"]
+      reason: check nginx fail
   - each:
       rules: ["http", "http-success"]
       http: check-gateway
       successPercent: 100
     allFail:
       rules: ["change-status-reported"]
+      reason: check so-zesty-jr fail
     allSuccess:
       rules: ["change-status-running"]
+      reason: ok
 dotLatestBlock:
   blockchains: ["dot"]
   type: rpc
@@ -70,6 +73,7 @@ dotLatestBlock:
       successPercent: 100
     allFail:
       rules: ["change-status-reported"]
+      reason: check chainId fail, chainId={{context.chainId}}
   - each:
       rules: ["http", "http-success", "map-response-field"]
       http: check-block
@@ -81,6 +85,7 @@ dotLatestBlock:
       successPercent: 100
     allFail:
       rules: ["change-status-reported"]
+      reason: get latestBlock fail
     allSuccess:
       rules: ["reduce"]
       mapShareFields:
@@ -91,8 +96,10 @@ dotLatestBlock:
       rules: ["check-block-late"]
     allFail:
       rules: ["change-status-reported"]
+      reason: current block is late
     allSuccess:
       rules: ["change-status-running"]
+      reason: ok
 ethLatestBlock:
   blockchains: ["eth", "bsc"]
   type: rpc
@@ -134,6 +141,7 @@ ethLatestBlock:
       successPercent: 100
     allFail:
       rules: ["change-status-reported"]
+      reason: check chainId fail, chainId={{context.chainId}}
   - each:
       rules: ["http", "http-success", "map-response-field"]
       http: check-block
@@ -145,6 +153,7 @@ ethLatestBlock:
       successPercent: 100
     allFail:
       rules: ["change-status-reported"]
+      reason: get latestBlock fail
     allSuccess:
       rules: ["reduce"]
       mapShareFields:
@@ -155,5 +164,7 @@ ethLatestBlock:
       rules: ["check-block-late"]
     allFail:
       rules: ["change-status-reported"]
+      reason: current block is late
     allSuccess:
       rules: ["change-status-running"]
+      reason: ok

@@ -32,9 +32,6 @@ export class Node extends BaseTable {
   @Expose()
   network?: ENetWork;
 
-  @Column('float8', { nullable: true })
-  apr?: number;
-
   @Column('varchar')
   @Expose()
   zone?: EZONE;

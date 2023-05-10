@@ -19,6 +19,12 @@ services:
       - DB_PASSWORD=postgres
       - DB_DATABASE=massbit-user
       - DB_LOGGING=false
+      - DB_MONITOR_HOST=mbr_db_beta_99
+      - DB_MONITOR_PORT=5432
+      - DB_MONITOR_USERNAME=postgres
+      - DB_MONITOR_PASSWORD=postgres
+      - DB_MONITOR_DATABASE=warwick
+      - DB_MONITOR_LOGGING=false
 
       - REDIS_HOST=mbr_redis_99
       - REDIS_PORT=6379

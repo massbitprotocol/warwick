@@ -18,7 +18,13 @@
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
-    "test:e2e": "jest --config ./test/jest-e2e.json"
+    "test:e2e": "jest --config ./test/jest-e2e.json",
+    "dbm:init": "ts-node -r tsconfig-paths/register ./node_modules/typeorm/cli.js schema:sync -d ormconfig.ts",
+    "dbm:init-runtime": "node ./node_modules/typeorm/cli.js schema:sync -d ormconfig.js",
+    "dbm:add": "ts-node -r tsconfig-paths/register ./node_modules/typeorm/cli.js migration:generate -d ormconfig.ts",
+    "dbm:create": "ts-node -r tsconfig-paths/register ./node_modules/typeorm/cli.js migration:create -d ormconfig.ts -n",
+    "dbm:run": "ts-node -r tsconfig-paths/register ./node_modules/typeorm/cli.js migration:run -d ormconfig.ts",
+    "dbm:revert": "ts-node -r tsconfig-paths/register ./node_modules/typeorm/cli.js migration:revert -d ormconfig.ts"
   },
   "dependencies": {
     "@nestjs/axios": "^2.0.0",
@@ -58,7 +64,7 @@
     "reflect-metadata": "^0.1.13",
     "retry-as-promised": "^7.0.4",
     "rxjs": "^7.2.0",
-    "typeorm": "^0.3.12",
+    "typeorm": "^0.3.15",
     "uuid": "^9.0.0"
   },
   "devDependencies": {

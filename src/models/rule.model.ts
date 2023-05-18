@@ -24,6 +24,9 @@ export class TaskValidationRule {
     reason: string
 
     @Expose()
+    reasonCode: string
+
+    @Expose()
     http: string
 
     @Expose()

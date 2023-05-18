@@ -11,6 +11,7 @@
       allFail:
         rules: ["change-status-investigate", "schedule"]
         reason: check nginx fail
+        reasonCode: GW_ERR_NGINX
         schedule:
           name: rtt-last-hit
           useConfig: ["gwRtt"]
@@ -22,6 +23,7 @@
       allFail:
         rules: ["change-status-investigate", "schedule"]
         reason: check so-zesty-jr fail
+        reasonCode: GW_ERR_ZESTY_JR
         schedule:
           name: rtt-last-hit
           useConfig: ["gwRtt"]
@@ -59,6 +61,7 @@
       allSuccess:
         rules: ["change-status-running", "remove-from-scheduler"]
         reason: ok
+        reasonCode: SUCCESS
         schedule:
           name: rtt-last-hit
 # Polkadot nodes
@@ -75,6 +78,7 @@
       allFail:
         rules: ["change-status-investigate", "schedule"]
         reason: "check chainId fail, error: http"
+        reasonCode: NODE_ERR_CHAINID
         schedule:
           name: latest-block-last-hit
           withDatasource: running-node
@@ -88,6 +92,7 @@
       allFail:
         rules: ["change-status-reported"]
         reason: check chainId fail, chainId={{context.chainId}}
+        reasonCode: NODE_ERR_CHAINID
     - each:
         rules: ["http", "http-success", "map-response-field"]
         http: check-block
@@ -100,6 +105,7 @@
       allFail:
         rules: ["change-status-investigate", "schedule"]
         reason: get latestBlock fail
+        reasonCode: NODE_ERR_LATESTBLOCK
         schedule:
           name: latest-block-last-hit
           withDatasource: running-node
@@ -116,6 +122,7 @@
       allFail:
         rules: ["change-status-investigate", "schedule"]
         reason: current block is late
+        reasonCode: NODE_ERR_LATESTBLOCK
         schedule:
           name: latest-block-last-hit
           withDatasource: running-node
@@ -147,6 +154,7 @@
       allFail:
         rules: ["change-status-reported"]
         reason: check chainId fail, chainId={{context.chainId}}
+        reasonCode: NODE_ERR_CHAINID
     - each:
         rules: ["http", "http-success", "map-response-field"]
         http: check-block
@@ -174,6 +182,7 @@
       allSuccess:
         rules: ["change-status-running", "remove-from-scheduler"]
         reason: ok
+        reasonCode: SUCCESS
         schedule:
           name: latest-block-last-hit
 
@@ -191,6 +200,7 @@
       allFail:
         rules: ["change-status-investigate", "schedule"]
         reason: "check chainId fail, error: http"
+        reasonCode: NODE_ERR_CHAINID
         schedule:
           name: latest-block-last-hit
           withDatasource: running-node
@@ -205,6 +215,7 @@
       allFail:
         rules: ["change-status-reported"]
         reason: check chainId fail, chainId={{context.chainId}}
+        reasonCode: NODE_ERR_CHAINID
     - each:
         rules: ["http", "http-success", "map-response-field"]
         http: check-block
@@ -217,6 +228,7 @@
       allFail:
         rules: ["change-status-investigate", "schedule"]
         reason: get latestBlock fail
+        reasonCode: NODE_ERR_LATESTBLOCK
         schedule:
           name: latest-block-last-hit
           withDatasource: running-node
@@ -233,6 +245,7 @@
       allFail:
         rules: ["change-status-investigate", "schedule"]
         reason: current block is late
+        reasonCode: NODE_ERR_LATESTBLOCK
         schedule:
           name: latest-block-last-hit
           withDatasource: running-node
@@ -265,6 +278,7 @@
       allFail:
         rules: ["change-status-reported"]
         reason: check chainId fail, chainId={{context.chainId}}
+        reasonCode: NODE_ERR_CHAINID
     - each:
         rules: ["http", "http-success", "map-response-field"]
         http: check-block
@@ -292,5 +306,6 @@
       allSuccess:
         rules: ["change-status-running", "remove-from-scheduler"]
         reason: ok
+        reasonCode: SUCCESS
         schedule:
           name: latest-block-last-hit

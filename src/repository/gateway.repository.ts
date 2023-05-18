@@ -73,6 +73,7 @@ export class GatewayRepository extends Repository<Gateway> {
     gatewayId: string, 
     status: EGatewayStatus, 
     operateStatus: EOperateStatus,
+    reasonCode: string,
     reason: string,
     jobId: string): Promise<boolean> {
     const old = await this.getById(gatewayId);
@@ -93,6 +94,7 @@ export class GatewayRepository extends Repository<Gateway> {
       rl.oldOperateStatus = old.operateStatus
       rl.newStatus = status
       rl.newOperateStatus = operateStatus
+      rl.reasonCode = reasonCode
       rl.reason = reason
       rl.jobId = jobId
       await this.rlRepository.insert(rl)

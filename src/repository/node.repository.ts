@@ -64,7 +64,8 @@ export class NodeRepository {
   async setStatus(
     nodeId: string, 
     status: ENodeStatus, 
-    operateStatus: EOperateStatus, 
+    operateStatus: EOperateStatus,
+    reasonCode: string,
     reason: string,
     jobId: string): Promise<boolean> {
     const old = await this.getById(nodeId);
@@ -85,6 +86,7 @@ export class NodeRepository {
       rl.oldOperateStatus = old.operateStatus
       rl.newStatus = status
       rl.newOperateStatus = operateStatus
+      rl.reasonCode = reasonCode
       rl.reason = reason
       rl.jobId = jobId
       await this.rlRepository.insert(rl)

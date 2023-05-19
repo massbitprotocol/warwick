@@ -158,11 +158,11 @@ export class JobEngineService {
             switch (this.config.datasource) {
               case DatasourceType.RunningGateway:
               case DatasourceType.InvestigateGateway:
-                await this.gatewayRepository.setStatus(context.datasource.id, EGatewayStatus.UNHEALTHY, EOperateStatus.INVESTIGATE, this.templateService.bindTemplate(validationRule.reason, context), this.name)
+                await this.gatewayRepository.setStatus(context.datasource.id, EGatewayStatus.UNHEALTHY, EOperateStatus.INVESTIGATE, validationRule.reasonCode, this.templateService.bindTemplate(validationRule.reason, context), this.name)
                 break
               case DatasourceType.RunningNode:
               case DatasourceType.InvestigateNode:
-                await this.nodeRepository.setStatus(context.datasource.id, ENodeStatus.UNHEALTHY, EOperateStatus.INVESTIGATE, this.templateService.bindTemplate(validationRule.reason, context), this.name)
+                await this.nodeRepository.setStatus(context.datasource.id, ENodeStatus.UNHEALTHY, EOperateStatus.INVESTIGATE, validationRule.reasonCode, this.templateService.bindTemplate(validationRule.reason, context), this.name)
                 break
               default: throw new Error(`Not support datasource ${this.config.datasource} on rule ${ValidateRule.ChangeStatusInvestigate}`)
             }
@@ -174,11 +174,11 @@ export class JobEngineService {
             switch (this.config.datasource) {
               case DatasourceType.RunningGateway:
               case DatasourceType.InvestigateGateway:
-                await this.gatewayRepository.setStatus(context.datasource.id, EGatewayStatus.UNHEALTHY, EOperateStatus.REPORTED, this.templateService.bindTemplate(validationRule.reason, context), this.name)
+                await this.gatewayRepository.setStatus(context.datasource.id, EGatewayStatus.UNHEALTHY, EOperateStatus.REPORTED, validationRule.reasonCode, this.templateService.bindTemplate(validationRule.reason, context), this.name)
                 break
               case DatasourceType.RunningNode:
               case DatasourceType.InvestigateNode:
-                await this.nodeRepository.setStatus(context.datasource.id, ENodeStatus.UNHEALTHY, EOperateStatus.REPORTED, this.templateService.bindTemplate(validationRule.reason, context), this.name)
+                await this.nodeRepository.setStatus(context.datasource.id, ENodeStatus.UNHEALTHY, EOperateStatus.REPORTED, validationRule.reasonCode, this.templateService.bindTemplate(validationRule.reason, context), this.name)
                 break
               default: throw new Error(`Not support datasource ${this.config.datasource} on rule ${ValidateRule.ChangeStatusReported}`)
             }
@@ -190,11 +190,11 @@ export class JobEngineService {
             switch (this.config.datasource) {
               case DatasourceType.RunningGateway:
               case DatasourceType.InvestigateGateway:
-                await this.gatewayRepository.setStatus(context.datasource.id, EGatewayStatus.STAKED, EOperateStatus.RUNNING, this.templateService.bindTemplate(validationRule.reason, context), this.name)
+                await this.gatewayRepository.setStatus(context.datasource.id, EGatewayStatus.STAKED, EOperateStatus.RUNNING, validationRule.reasonCode, this.templateService.bindTemplate(validationRule.reason, context), this.name)
                 break
               case DatasourceType.RunningNode:
               case DatasourceType.InvestigateNode:
-                await this.nodeRepository.setStatus(context.datasource.id, ENodeStatus.STAKED, EOperateStatus.RUNNING, this.templateService.bindTemplate(validationRule.reason, context), this.name)
+                await this.nodeRepository.setStatus(context.datasource.id, ENodeStatus.STAKED, EOperateStatus.RUNNING, validationRule.reasonCode, this.templateService.bindTemplate(validationRule.reason, context), this.name)
                 break
               default: throw new Error(`Not support datasource ${this.config.datasource} on rule ${ValidateRule.ChangeStatusRunning}`)
             }

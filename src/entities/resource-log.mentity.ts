@@ -25,5 +25,8 @@ export class ResourceLog extends BaseTable {
   reason: string
 
   @Column('varchar')
+  reasonCode: string
+
+  @Column('varchar')
   jobId: string
 }

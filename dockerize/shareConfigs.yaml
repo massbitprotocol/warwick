@@ -23,6 +23,7 @@ gwRtt:
     allFail:
       rules: ["change-status-reported"]
       reason: check nginx fail
+      reasonCode: GW_ERR_NGINX
   - each:
       rules: ["http", "http-success"]
       http: check-gateway
@@ -30,9 +31,11 @@ gwRtt:
     allFail:
       rules: ["change-status-reported"]
       reason: check so-zesty-jr fail
+      reasonCode: GW_ERR_ZESTY_JR
     allSuccess:
       rules: ["change-status-running"]
       reason: ok
+      reasonCode: SUCCESS
 dotLatestBlock:
   blockchains: ["dot"]
   type: rpc
@@ -74,6 +77,7 @@ dotLatestBlock:
     allFail:
       rules: ["change-status-reported"]
       reason: check chainId fail, chainId={{context.chainId}}
+      reasonCode: NODE_ERR_CHAINID
   - each:
       rules: ["http", "http-success", "map-response-field"]
       http: check-block
@@ -86,6 +90,7 @@ dotLatestBlock:
     allFail:
       rules: ["change-status-reported"]
       reason: get latestBlock fail
+      reasonCode: NODE_ERR_LATESTBLOCK
     allSuccess:
       rules: ["reduce"]
       mapShareFields:
@@ -97,9 +102,11 @@ dotLatestBlock:
     allFail:
       rules: ["change-status-reported"]
       reason: current block is late
+      reasonCode: NODE_ERR_LATESTBLOCK
     allSuccess:
       rules: ["change-status-running"]
       reason: ok
+      reasonCode: SUCCESS
 ethLatestBlock:
   blockchains: ["eth", "bsc"]
   type: rpc
@@ -142,6 +149,7 @@ ethLatestBlock:
     allFail:
       rules: ["change-status-reported"]
       reason: check chainId fail, chainId={{context.chainId}}
+      reasonCode: NODE_ERR_CHAINID
   - each:
       rules: ["http", "http-success", "map-response-field"]
       http: check-block
@@ -154,6 +162,7 @@ ethLatestBlock:
     allFail:
       rules: ["change-status-reported"]
       reason: get latestBlock fail
+      reasonCode: NODE_ERR_LATESTBLOCK
     allSuccess:
       rules: ["reduce"]
       mapShareFields:
@@ -165,6 +174,8 @@ ethLatestBlock:
     allFail:
       rules: ["change-status-reported"]
       reason: current block is late
+      reasonCode: NODE_ERR_LATESTBLOCK
     allSuccess:
       rules: ["change-status-running"]
       reason: ok
+      reasonCode: SUCCESS

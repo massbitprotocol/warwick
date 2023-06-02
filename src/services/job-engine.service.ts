@@ -153,7 +153,7 @@ export class JobEngineService {
           }
           break
         case ValidateRule.ChangeStatusInvestigate:
-          if (!context.datasource.ignore) {
+          if (!context.datasource.ignore && context.datasource.status != EGatewayStatus.UNSTAKE) {
             this.logger.log(`Change status of datasource ${this.config.datasource}, id=${context.datasource.id} to ${EOperateStatus.INVESTIGATE}`)
             switch (this.config.datasource) {
               case DatasourceType.RunningGateway:
@@ -169,7 +169,7 @@ export class JobEngineService {
           }
           break
         case ValidateRule.ChangeStatusReported:
-          if (!context.datasource.ignore) {
+          if (!context.datasource.ignore && context.datasource.status != EGatewayStatus.UNSTAKE) {
             this.logger.log(`Change status of datasource ${this.config.datasource}, id=${context.datasource.id} to ${EOperateStatus.REPORTED}`)
             switch (this.config.datasource) {
               case DatasourceType.RunningGateway:
@@ -185,7 +185,7 @@ export class JobEngineService {
           }
           break
         case ValidateRule.ChangeStatusRunning:
-          if (!context.datasource.ignore) {
+          if (!context.datasource.ignore && context.datasource.status != EGatewayStatus.UNSTAKE) {
             this.logger.log(`Change status of datasource ${this.config.datasource}, id=${context.datasource.id} to ${EOperateStatus.RUNNING}`)
             switch (this.config.datasource) {
               case DatasourceType.RunningGateway:

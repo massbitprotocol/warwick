@@ -4,6 +4,9 @@ services:
   dev:
     container_name: warwick
     image: warwick:1.0.0
+    networks:
+      massbit:
+        ipv4_address: "172.24.97.4"
     build:
       dockerfile: Dockerfile.dev
       context: .
@@ -26,5 +29,6 @@ services:
     restart: unless-stopped
 
 networks:
-  default:
-    driver: bridge
+  massbit:
+    external:
+      name: "massbit"

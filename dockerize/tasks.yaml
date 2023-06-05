@@ -1,59 +1,47 @@
-- name: rtt
+- name: check-gw
   cronTime: "*/10 * * * * *"
   config:
-    useConfig: ["gwRtt"]
+    useConfig: ["checkGw"]
     datasource: running-gateway
     validates:
     - each:
         rules: ["http", "http-success"]
-        http: rtt
-        successPercent: 50
-      allFail:
-        rules: ["change-status-investigate", "schedule"]
-        schedule:
-          name: rtt-last-hit
-          useConfig: ["gwRtt"]
-          timer: 3600
-    - each:
-        rules: ["http", "http-success"]
         http: check-gateway
         successPercent: 100
       allFail:
         rules: ["change-status-investigate", "schedule"]
+        reason: check nginx fail
+        reasonCode: GW_ERR_NGINX
         schedule:
-          name: rtt-last-hit
-          useConfig: ["gwRtt"]
+          name: check-gw-last-hit
+          useConfig: ["checkGw"]
           timer: 3600
-- name: rtt-investigate
+      allSuccess:
+        rules: ["remove-from-scheduler"]
+        schedule:
+          name: check-gw-last-hit
+- name: check-gw-investigate
   cronTime: "0 */5 * * * *"
   config:
-    useConfig: ["gwRtt"]
+    useConfig: ["checkGw"]
     datasource: investigate-gateway
     validates:
     - each:
         rules: ["http", "http-success"]
-        http: rtt
-        successPercent: 50
-      allFail:
-        rules: ["schedule-if-not-exist"]
-        schedule:
-          name: rtt-last-hit
-          useConfig: ["gwRtt"]
-          timer: 3600
-    - each:
-        rules: ["http", "http-success"]
         http: check-gateway
         successPercent: 100
       allFail:
         rules: ["schedule-if-not-exist"]
         schedule:
-          name: rtt-last-hit
-          useConfig: ["gwRtt"]
+          name: check-gw-last-hit
+          useConfig: ["checkGw"]
           timer: 3600
       allSuccess:
         rules: ["change-status-running", "remove-from-scheduler"]
+        reason: ok
+        reasonCode: SUCCESS
         schedule:
-          name: rtt-last-hit
+          name: check-gw-last-hit
 # Polkadot nodes
 - name: latest-block
   cronTime: "0 */1 * * * *"
@@ -67,6 +55,8 @@
         successPercent: 100
       allFail:
         rules: ["change-status-investigate", "schedule"]
+        reason: "check chainId fail, error: http"
+        reasonCode: NODE_ERR_CHAINID
         schedule:
           name: latest-block-last-hit
           withDatasource: running-node
@@ -79,6 +69,8 @@
             field: "result"
       allFail:
         rules: ["change-status-reported"]
+        reason: check chainId fail, chainId={{context.chainId}}
+        reasonCode: NODE_ERR_CHAINID
     - each:
         rules: ["http", "http-success", "map-response-field"]
         http: check-block
@@ -90,6 +82,8 @@
         successPercent: 100
       allFail:
         rules: ["change-status-investigate", "schedule"]
+        reason: get latestBlock fail
+        reasonCode: NODE_ERR_LATESTBLOCK
         schedule:
           name: latest-block-last-hit
           withDatasource: running-node
@@ -105,6 +99,8 @@
         rules: ["check-block-late"]
       allFail:
         rules: ["change-status-investigate", "schedule"]
+        reason: current block is late
+        reasonCode: NODE_ERR_LATESTBLOCK
         schedule:
           name: latest-block-last-hit
           withDatasource: running-node
@@ -135,6 +131,8 @@
             field: "result"
       allFail:
         rules: ["change-status-reported"]
+        reason: check chainId fail, chainId={{context.chainId}}
+        reasonCode: NODE_ERR_CHAINID
     - each:
         rules: ["http", "http-success", "map-response-field"]
         http: check-block
@@ -161,6 +159,8 @@
           timer: 3600
       allSuccess:
         rules: ["change-status-running", "remove-from-scheduler"]
+        reason: ok
+        reasonCode: SUCCESS
         schedule:
           name: latest-block-last-hit
 
@@ -177,6 +177,8 @@
         successPercent: 100
       allFail:
         rules: ["change-status-investigate", "schedule"]
+        reason: "check chainId fail, error: http"
+        reasonCode: NODE_ERR_CHAINID
         schedule:
           name: latest-block-last-hit
           withDatasource: running-node
@@ -190,6 +192,8 @@
             field: "result"
       allFail:
         rules: ["change-status-reported"]
+        reason: check chainId fail, chainId={{context.chainId}}
+        reasonCode: NODE_ERR_CHAINID
     - each:
         rules: ["http", "http-success", "map-response-field"]
         http: check-block
@@ -201,6 +205,8 @@
         successPercent: 100
       allFail:
         rules: ["change-status-investigate", "schedule"]
+        reason: get latestBlock fail
+        reasonCode: NODE_ERR_LATESTBLOCK
         schedule:
           name: latest-block-last-hit
           withDatasource: running-node
@@ -216,6 +222,8 @@
         rules: ["check-block-late"]
       allFail:
         rules: ["change-status-investigate", "schedule"]
+        reason: current block is late
+        reasonCode: NODE_ERR_LATESTBLOCK
         schedule:
           name: latest-block-last-hit
           withDatasource: running-node
@@ -247,6 +255,8 @@
             field: "result"
       allFail:
         rules: ["change-status-reported"]
+        reason: check chainId fail, chainId={{context.chainId}}
+        reasonCode: NODE_ERR_CHAINID
     - each:
         rules: ["http", "http-success", "map-response-field"]
         http: check-block
@@ -273,5 +283,7 @@
           timer: 3600
       allSuccess:
         rules: ["change-status-running", "remove-from-scheduler"]
+        reason: ok
+        reasonCode: SUCCESS
         schedule:
           name: latest-block-last-hit

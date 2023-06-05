@@ -1,12 +1,5 @@
-gwRtt:
+checkGw:
   http:
-  - name: rtt
-    timeout: 3000
-    url: "{{scheme}}://{{ip}}/_rtt"
-    method: GET
-    attemptNumber: 3
-    headers:
-      Host: internal.massbitroute.net
   - name: check-gateway
     timeout: 3000
     url: "{{scheme}}://{{ip}}/config/gw-check"
@@ -18,18 +11,16 @@ gwRtt:
   validates:
   - each:
       rules: ["http", "http-success"]
-      http: rtt
-      successPercent: 50
-    allFail:
-      rules: ["change-status-reported"]
-  - each:
-      rules: ["http", "http-success"]
       http: check-gateway
       successPercent: 100
     allFail:
       rules: ["change-status-reported"]
+      reason: check nginx fail
+      reasonCode: GW_ERR_NGINX
     allSuccess:
       rules: ["change-status-running"]
+      reason: ok
+      reasonCode: SUCCESS
 dotLatestBlock:
   blockchains: ["dot"]
   type: rpc
@@ -41,7 +32,7 @@ dotLatestBlock:
     attemptNumber: 1
     headers:
       "content-type": application/json
-      "X-Api-Key": "{{appKey}}"
+      # "X-Api-Key": "{{appKey}}"
     body:
       jsonrpc: "2.0"
       method: "system_chain"
@@ -54,7 +45,8 @@ dotLatestBlock:
     attemptNumber: 1
     headers:
       "content-type": application/json
-      "X-Api-Key": "{{appKey}}"
+      "accept-encoding": gzip
+      # "X-Api-Key": "{{appKey}}"
     body:
       jsonrpc: "2.0"
       method: "chain_getBlock"
@@ -70,6 +62,8 @@ dotLatestBlock:
       successPercent: 100
     allFail:
       rules: ["change-status-reported"]
+      reason: check chainId fail, chainId={{context.chainId}}
+      reasonCode: NODE_ERR_CHAINID
   - each:
       rules: ["http", "http-success", "map-response-field"]
       http: check-block
@@ -81,6 +75,8 @@ dotLatestBlock:
       successPercent: 100
     allFail:
       rules: ["change-status-reported"]
+      reason: get latestBlock fail
+      reasonCode: NODE_ERR_LATESTBLOCK
     allSuccess:
       rules: ["reduce"]
       mapShareFields:
@@ -91,8 +87,12 @@ dotLatestBlock:
       rules: ["check-block-late"]
     allFail:
       rules: ["change-status-reported"]
+      reason: current block is late
+      reasonCode: NODE_ERR_LATESTBLOCK
     allSuccess:
       rules: ["change-status-running"]
+      reason: ok
+      reasonCode: SUCCESS
 ethLatestBlock:
   blockchains: ["eth", "bsc"]
   type: rpc
@@ -117,11 +117,12 @@ ethLatestBlock:
     attemptNumber: 1
     headers:
       "content-type": application/json
+      "accept-encoding": gzip
       # "X-Api-Key": "{{appKey}}"
     body:
       jsonrpc: "2.0"
       method: "eth_getBlockByNumber"
-      params: ["latest", true]
+      params: ["latest", false]
       id: 1
   validates:
   - each:
@@ -134,6 +135,8 @@ ethLatestBlock:
       successPercent: 100
     allFail:
       rules: ["change-status-reported"]
+      reason: check chainId fail, chainId={{context.chainId}}
+      reasonCode: NODE_ERR_CHAINID
   - each:
       rules: ["http", "http-success", "map-response-field"]
       http: check-block
@@ -145,6 +148,8 @@ ethLatestBlock:
       successPercent: 100
     allFail:
       rules: ["change-status-reported"]
+      reason: get latestBlock fail
+      reasonCode: NODE_ERR_LATESTBLOCK
     allSuccess:
       rules: ["reduce"]
       mapShareFields:
@@ -155,5 +160,9 @@ ethLatestBlock:
       rules: ["check-block-late"]
     allFail:
       rules: ["change-status-reported"]
+      reason: current block is late
+      reasonCode: NODE_ERR_LATESTBLOCK
     allSuccess:
       rules: ["change-status-running"]
+      reason: ok
+      reasonCode: SUCCESS

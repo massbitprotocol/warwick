@@ -153,48 +153,48 @@ export class JobEngineService {
           }
           break
         case ValidateRule.ChangeStatusInvestigate:
-          if (!context.datasource.ignore) {
+          if (!context.datasource.ignore && context.datasource.status != EGatewayStatus.UNSTAKE) {
             this.logger.log(`Change status of datasource ${this.config.datasource}, id=${context.datasource.id} to ${EOperateStatus.INVESTIGATE}`)
             switch (this.config.datasource) {
               case DatasourceType.RunningGateway:
               case DatasourceType.InvestigateGateway:
-                await this.gatewayRepository.setStatus(context.datasource.id, EGatewayStatus.UNHEALTHY, EOperateStatus.INVESTIGATE)
+                await this.gatewayRepository.setStatus(context.datasource.id, EGatewayStatus.UNHEALTHY, EOperateStatus.INVESTIGATE, validationRule.reasonCode, this.templateService.bindTemplate(validationRule.reason, context), this.name)
                 break
               case DatasourceType.RunningNode:
               case DatasourceType.InvestigateNode:
-                await this.nodeRepository.setStatus(context.datasource.id, ENodeStatus.UNHEALTHY, EOperateStatus.INVESTIGATE)
+                await this.nodeRepository.setStatus(context.datasource.id, ENodeStatus.UNHEALTHY, EOperateStatus.INVESTIGATE, validationRule.reasonCode, this.templateService.bindTemplate(validationRule.reason, context), this.name)
                 break
               default: throw new Error(`Not support datasource ${this.config.datasource} on rule ${ValidateRule.ChangeStatusInvestigate}`)
             }
           }
           break
         case ValidateRule.ChangeStatusReported:
-          if (!context.datasource.ignore) {
+          if (!context.datasource.ignore && context.datasource.status != EGatewayStatus.UNSTAKE) {
             this.logger.log(`Change status of datasource ${this.config.datasource}, id=${context.datasource.id} to ${EOperateStatus.REPORTED}`)
             switch (this.config.datasource) {
               case DatasourceType.RunningGateway:
               case DatasourceType.InvestigateGateway:
-                await this.gatewayRepository.setStatus(context.datasource.id, EGatewayStatus.UNHEALTHY, EOperateStatus.REPORTED)
+                await this.gatewayRepository.setStatus(context.datasource.id, EGatewayStatus.UNHEALTHY, EOperateStatus.REPORTED, validationRule.reasonCode, this.templateService.bindTemplate(validationRule.reason, context), this.name)
                 break
               case DatasourceType.RunningNode:
               case DatasourceType.InvestigateNode:
-                await this.nodeRepository.setStatus(context.datasource.id, ENodeStatus.UNHEALTHY, EOperateStatus.REPORTED)
+                await this.nodeRepository.setStatus(context.datasource.id, ENodeStatus.UNHEALTHY, EOperateStatus.REPORTED, validationRule.reasonCode, this.templateService.bindTemplate(validationRule.reason, context), this.name)
                 break
               default: throw new Error(`Not support datasource ${this.config.datasource} on rule ${ValidateRule.ChangeStatusReported}`)
             }
           }
           break
         case ValidateRule.ChangeStatusRunning:
-          if (!context.datasource.ignore) {
+          if (!context.datasource.ignore && context.datasource.status != EGatewayStatus.UNSTAKE) {
             this.logger.log(`Change status of datasource ${this.config.datasource}, id=${context.datasource.id} to ${EOperateStatus.RUNNING}`)
             switch (this.config.datasource) {
               case DatasourceType.RunningGateway:
               case DatasourceType.InvestigateGateway:
-                await this.gatewayRepository.setStatus(context.datasource.id, EGatewayStatus.STAKED, EOperateStatus.RUNNING)
+                await this.gatewayRepository.setStatus(context.datasource.id, EGatewayStatus.STAKED, EOperateStatus.RUNNING, validationRule.reasonCode, this.templateService.bindTemplate(validationRule.reason, context), this.name)
                 break
               case DatasourceType.RunningNode:
               case DatasourceType.InvestigateNode:
-                await this.nodeRepository.setStatus(context.datasource.id, ENodeStatus.STAKED, EOperateStatus.RUNNING)
+                await this.nodeRepository.setStatus(context.datasource.id, ENodeStatus.STAKED, EOperateStatus.RUNNING, validationRule.reasonCode, this.templateService.bindTemplate(validationRule.reason, context), this.name)
                 break
               default: throw new Error(`Not support datasource ${this.config.datasource} on rule ${ValidateRule.ChangeStatusRunning}`)
             }

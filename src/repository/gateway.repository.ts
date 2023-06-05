@@ -2,13 +2,17 @@ import { Injectable } from "@nestjs/common";
 import { Gateway } from "src/entities/gateway.entity";
 import { In, Not, Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
-import { EBoolean, EGatewayStatus, EOperateStatus, INACTIVE_GATEWAY_STATUS, INITABLE_GATEWAY_STATUS, RELOADABLE_GATEWAY_STATUS } from "src/configs/consts";
+import { EBoolean, EGatewayStatus, EOperateStatus, INACTIVE_GATEWAY_STATUS, INITABLE_GATEWAY_STATUS, RELOADABLE_GATEWAY_STATUS, datasourceMonitorDb } from "src/configs/consts";
+import { ResourceLog } from "src/entities/resource-log.mentity";
+import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
 export class GatewayRepository extends Repository<Gateway> {
   constructor(
     @InjectRepository(Gateway)
-    private readonly repository: Repository<Gateway>) {
+    private readonly repository: Repository<Gateway>,
+    @InjectRepository(ResourceLog, datasourceMonitorDb)
+    private readonly rlRepository: Repository<ResourceLog>) {
       super(repository.target, repository.manager, repository.queryRunner);
   }
 
@@ -65,12 +69,37 @@ export class GatewayRepository extends Repository<Gateway> {
     })
   }
 
-  async setStatus(gatewayId: string, status: EGatewayStatus, operateStatus: EOperateStatus): Promise<boolean> {
+  async setStatus(
+    gatewayId: string, 
+    status: EGatewayStatus, 
+    operateStatus: EOperateStatus,
+    reasonCode: string,
+    reason: string,
+    jobId: string): Promise<boolean> {
+    const old = await this.getById(gatewayId);
+    if (status == old.status && operateStatus == old.operateStatus) {
+      return false
+    }
     const result = await this.repository.update(gatewayId, {
       status,
       operateStatus,
       updatedAt: new Date()
     })
-    return result.affected > 0
+    if (result.affected > 0) {
+      const rl = new ResourceLog()
+      rl.id = uuidv4()
+      rl.resourceId = gatewayId
+      rl.resourceType = "gateway"
+      rl.oldStatus = old.status
+      rl.oldOperateStatus = old.operateStatus
+      rl.newStatus = status
+      rl.newOperateStatus = operateStatus
+      rl.reasonCode = reasonCode
+      rl.reason = reason
+      rl.jobId = jobId
+      await this.rlRepository.insert(rl)
+      return true
+    }
+    return false
   }
 }

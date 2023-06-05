@@ -21,6 +21,12 @@ export class TaskValidationRule {
     rules: ValidateRule[]
 
     @Expose()
+    reason: string
+
+    @Expose()
+    reasonCode: string
+
+    @Expose()
     http: string
 
     @Expose()

@@ -56,6 +56,7 @@ dotLatestBlock:
   - each:
       rules: ["http", "http-success", "map-response-field", "check-chain-id"]
       http: check-chainid
+      httpCached: true
       mapFields:
         - name: chainId
           field: "result"
@@ -67,6 +68,7 @@ dotLatestBlock:
   - each:
       rules: ["http", "http-success", "map-response-field"]
       http: check-block
+      httpCached: true
       mapFields:
         - name: "blockNumber-{{blockchain}}-{{network}}"
           from: 1
@@ -128,6 +130,7 @@ ethLatestBlock:
   - each:
       rules: ["http", "http-success", "map-response-field", "check-chain-id"]
       http: check-chainid
+      httpCached: true
       mapFields:
         - name: chainId
           operator: parse-hex
@@ -140,6 +143,7 @@ ethLatestBlock:
   - each:
       rules: ["http", "http-success", "map-response-field"]
       http: check-block
+      httpCached: true
       mapFields:
         - name: "blockNumber-{{blockchain}}-{{network}}"
           from: 1

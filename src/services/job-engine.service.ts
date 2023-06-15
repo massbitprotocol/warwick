@@ -107,8 +107,8 @@ export class JobEngineService {
               ...context.datasource
             })
             const cacheKey = `${url}-${http.method}-${JSON.stringify(http.body)}`
-            var res: AxiosResponse | Error
-            var f = async () => {
+            let res: AxiosResponse | Error
+            const f = async () => {
               if (validationRule.httpCache && this.httpCacheMap.has(cacheKey)) {
                 // this.logger.warn(`Read http cache ${http.method} ${url}`)
                 res = this.httpCacheMap.get(cacheKey);

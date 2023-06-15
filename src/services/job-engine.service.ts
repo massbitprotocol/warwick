@@ -109,7 +109,7 @@ export class JobEngineService {
             const cacheKey = `${url}-${http.method}-${JSON.stringify(http.body)}`
             var res: AxiosResponse | Error
             var f = async () => {
-              if (validationRule.httpCached && this.httpCacheMap.has(cacheKey)) {
+              if (validationRule.httpCache && this.httpCacheMap.has(cacheKey)) {
                 // this.logger.warn(`Read http cache ${http.method} ${url}`)
                 res = this.httpCacheMap.get(cacheKey);
               } else {
@@ -121,14 +121,14 @@ export class JobEngineService {
                     return acc
                   }, {})
                 })
-                if (validationRule.httpCached && !this.httpCacheMap.has(cacheKey)) {
+                if (validationRule.httpCache && !this.httpCacheMap.has(cacheKey)) {
                   // this.logger.warn(`Set http cache ${http.method} ${url}`)
                   this.httpCacheMap.set(cacheKey, res);
                 }
               }
             }
 
-            if (validationRule.httpCached) {
+            if (validationRule.httpCache) {
               await this.mainMutex.acquire().then(async (release) => {
                 try {
                   if (!this.mutexes.has(cacheKey)) {

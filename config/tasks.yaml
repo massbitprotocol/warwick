@@ -52,6 +52,7 @@
     - each:
         rules: ["http", "http-success"]
         http: check-chainid
+        httpCache: true
         successPercent: 100
       allFail:
         rules: ["change-status-investigate", "schedule"]
@@ -74,6 +75,7 @@
     - each:
         rules: ["http", "http-success", "map-response-field"]
         http: check-block
+        httpCache: true
         mapFields:
           - name: "blockNumber-{{blockchain}}-{{network}}"
             from: 1
@@ -116,6 +118,7 @@
     - each:
         rules: ["http", "http-success"]
         http: check-chainid
+        httpCache: true
         successPercent: 100
       allFail:
         rules: ["schedule-if-not-exist"]
@@ -136,6 +139,7 @@
     - each:
         rules: ["http", "http-success", "map-response-field"]
         http: check-block
+        httpCache: true
         mapFields:
           - name: "blockNumber-{{blockchain}}-{{network}}"
             from: 1
@@ -174,6 +178,7 @@
     - each:
         rules: ["http", "http-success"]
         http: check-chainid
+        httpCache: true
         successPercent: 100
       allFail:
         rules: ["change-status-investigate", "schedule"]
@@ -197,6 +202,7 @@
     - each:
         rules: ["http", "http-success", "map-response-field"]
         http: check-block
+        httpCache: true
         mapFields:
           - name: "blockNumber-{{blockchain}}-{{network}}"
             from: 1
@@ -239,6 +245,7 @@
     - each:
         rules: ["http", "http-success"]
         http: check-chainid
+        httpCache: true
         successPercent: 100
       allFail:
         rules: ["schedule-if-not-exist"]
@@ -260,6 +267,7 @@
     - each:
         rules: ["http", "http-success", "map-response-field"]
         http: check-block
+        httpCache: true
         mapFields:
           - name: "blockNumber-{{blockchain}}-{{network}}"
             from: 1

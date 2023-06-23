@@ -14,6 +14,8 @@ import { NodeRepository } from "src/repository/node.repository";
 import { newContextId } from "src/utils/encrypt";
 import { DatasourceContext } from "../models/scheduler-task.model";
 import { TemplateService } from "./template.service";
+import { batchEach } from "src/utils/batch";
+import { Mutex } from "async-mutex"
 const _ = require("lodash");
 
 export class JobEngineService {
@@ -25,6 +27,9 @@ export class JobEngineService {
   private name: string
   private blockchain: EBlockChain
   public logger: ContextLogger
+  httpCacheMap: Map<string, AxiosResponse | Error>;
+  mainMutex = new Mutex();
+  mutexes: Map<string, Mutex>;
   constructor(
     private readonly configService: ConfigService,
     private readonly templateService: TemplateService,
@@ -72,6 +77,8 @@ export class JobEngineService {
   }
 
   async handleCronJob(datasources: any[] = []) {
+    this.httpCacheMap = new Map();
+    this.mutexes = new Map();
     if (datasources.length == 0) {
       datasources = await this.getDatasource(this.config.datasource);
       this.logger.debug(`Found ${datasources.length} datasource(s)!`)
@@ -95,18 +102,56 @@ export class JobEngineService {
           const http = this.config.http.find((i) => i.name == validationRule.http);
           if (!http) throw new Error(`not found http rule ${validationRule.http}`)
           for (let i = 0; i < http.attemptNumber; i++) {
-            // TODO: handle fail request with status != 2xx
-            const res = await this.baseApi.doHttpRequest({
-              ...http,
-              url: this.templateService.bindTemplate(http.url, {
-                scheme: REQUEST_SCHEME,
-                ...context.datasource
-              }),
-              headers: Object.keys(http.headers || {}).reduce((acc, header) => {
-                acc[header] = this.templateService.bindTemplate(http.headers[header], context.datasource)
-                return acc
-              }, {})
+            const url = this.templateService.bindTemplate(http.url, {
+              scheme: REQUEST_SCHEME,
+              ...context.datasource
             })
+            const cacheKey = `${url}-${http.method}-${JSON.stringify(http.body)}`
+            let res: AxiosResponse | Error
+            const f = async () => {
+              if (validationRule.httpCache && this.httpCacheMap.has(cacheKey)) {
+                // this.logger.warn(`Read http cache ${http.method} ${url}`)
+                res = this.httpCacheMap.get(cacheKey);
+              } else {
+                res = await this.baseApi.doHttpRequest({
+                  ...http,
+                  url,
+                  headers: Object.keys(http.headers || {}).reduce((acc, header) => {
+                    acc[header] = this.templateService.bindTemplate(http.headers[header], context.datasource)
+                    return acc
+                  }, {})
+                })
+                if (validationRule.httpCache && !this.httpCacheMap.has(cacheKey)) {
+                  // this.logger.warn(`Set http cache ${http.method} ${url}`)
+                  this.httpCacheMap.set(cacheKey, res);
+                }
+              }
+            }
+
+            if (validationRule.httpCache) {
+              await this.mainMutex.acquire().then(async (release) => {
+                try {
+                  if (!this.mutexes.has(cacheKey)) {
+                    // this.logger.warn("Create new mutex " + cacheKey)
+                    this.mutexes.set(cacheKey, new Mutex());
+                  }
+                } finally {
+                  release()
+                }
+              })
+              var mutex = this.mutexes.get(cacheKey);
+              await mutex.acquire().then(async(release) => {
+                try {
+                  await f();
+                } finally {
+                  release();
+                }
+              })
+            } else {
+              await f();
+            }
+
+            // console.log(JSON.stringify((res as AxiosResponse).data))
             context.responses.push(res);
           }
           break
@@ -141,7 +186,7 @@ export class JobEngineService {
           if (this.blockchainConfigs.has(blocknet)) {
             let blockchainConfig = this.blockchainConfigs.get(blocknet)
             let maxBlockField = this.templateService.bindTemplate("maxBlock-{{blockchain}}-{{network}}", context.datasource),
-            blockNumberField = this.templateService.bindTemplate("blockNumber-{{blockchain}}-{{network}}", context.datasource)
+              blockNumberField = this.templateService.bindTemplate("blockNumber-{{blockchain}}-{{network}}", context.datasource)
             let blockLate = this.jobContext[maxBlockField] - context.context[blockNumberField]
             if (blockLate > blockchainConfig.maxBlockLate) {
               this.logger.warn(`Block of node ${context.datasource.id} was late ${blockLate} block(s): ${context.context[blockNumberField]} < ${this.jobContext[maxBlockField]}`)
@@ -153,7 +198,7 @@ export class JobEngineService {
           }
           break
         case ValidateRule.ChangeStatusInvestigate:
-          if (!context.datasource.ignore) {
+          if (!context.datasource.ignore && context.datasource.status != EGatewayStatus.UNSTAKE) {
             this.logger.log(`Change status of datasource ${this.config.datasource}, id=${context.datasource.id} to ${EOperateStatus.INVESTIGATE}`)
             switch (this.config.datasource) {
               case DatasourceType.RunningGateway:
@@ -169,7 +214,7 @@ export class JobEngineService {
           }
           break
         case ValidateRule.ChangeStatusReported:
-          if (!context.datasource.ignore) {
+          if (!context.datasource.ignore && context.datasource.status != EGatewayStatus.UNSTAKE) {
             this.logger.log(`Change status of datasource ${this.config.datasource}, id=${context.datasource.id} to ${EOperateStatus.REPORTED}`)
             switch (this.config.datasource) {
               case DatasourceType.RunningGateway:
@@ -185,7 +230,7 @@ export class JobEngineService {
           }
           break
         case ValidateRule.ChangeStatusRunning:
-          if (!context.datasource.ignore) {
+          if (!context.datasource.ignore && context.datasource.status != EGatewayStatus.UNSTAKE) {
             this.logger.log(`Change status of datasource ${this.config.datasource}, id=${context.datasource.id} to ${EOperateStatus.RUNNING}`)
             switch (this.config.datasource) {
               case DatasourceType.RunningGateway:
@@ -213,7 +258,7 @@ export class JobEngineService {
       case ReduceOperator.Max:
         contexts.forEach((context) => {
           let targetFieldName = this.templateService.bindTemplate(rule.name, context.datasource),
-          fieldName = this.templateService.bindTemplate(rule.field, context.datasource)
+            fieldName = this.templateService.bindTemplate(rule.field, context.datasource)
           let max = targetFieldName in this.jobContext ? this.jobContext[targetFieldName] : 0;
           let val = _.get(context.context, fieldName) != undefined ? _.get(context.context, fieldName) : 0
           if (val > max) {
@@ -263,7 +308,7 @@ export class JobEngineService {
   async removeFromScheduler(ctxs: DatasourceContext[]) {
     const delayedJobs = await this.monitorEventQueue.getJobs(["delayed"]);
     let targetDatasourceTypes = []
-    switch(this.config.datasource) {
+    switch (this.config.datasource) {
       case DatasourceType.InvestigateGateway:
       case DatasourceType.RunningGateway:
         targetDatasourceTypes = [DatasourceType.InvestigateGateway, DatasourceType.RunningGateway]
@@ -278,19 +323,19 @@ export class JobEngineService {
       job: delayjob,
       taskDetail: plainToInstance(SchedulerTask, delayjob.data)
     }))
-    .filter(({taskDetail}) => targetDatasourceTypes.includes(taskDetail.config.datasource) && (taskDetail.config.blockchains[0] || "") == this.blockchain)
-    .map(async({job, taskDetail}) => {
-      const data = taskDetail.data;
-      const filterData = (data as Array<any>).filter((i) => !excludeIds.includes(i.id))
-      if (filterData.length == 0) {
-        this.logger.log(`Deleting job ${job.id} (${taskDetail.name})`)
-        await job.remove()
-      } else if (filterData.length != data.length) {
-        taskDetail.data = filterData;
-        this.logger.log(`Update datasource for job ${job.id} (${taskDetail.name})`)
-        await job.update(instanceToPlain(taskDetail))
-      }
-    })
+      .filter(({ taskDetail }) => targetDatasourceTypes.includes(taskDetail.config.datasource) && (taskDetail.config.blockchains[0] || "") == this.blockchain)
+      .map(async ({ job, taskDetail }) => {
+        const data = taskDetail.data;
+        const filterData = (data as Array<any>).filter((i) => !excludeIds.includes(i.id))
+        if (filterData.length == 0) {
+          this.logger.log(`Deleting job ${job.id} (${taskDetail.name})`)
+          await job.remove()
+        } else if (filterData.length != data.length) {
+          taskDetail.data = filterData;
+          this.logger.log(`Update datasource for job ${job.id} (${taskDetail.name})`)
+          await job.update(instanceToPlain(taskDetail))
+        }
+      })
     await Promise.all(promises)
   }
 
@@ -334,9 +379,11 @@ export class JobEngineService {
           break
         default:
           if (ctxs.length == 0) break
-          await Promise.all(ctxs.map(async (context) => {
-            await this.validateEach(validationRule, rule, context);
-          }))
+          await batchEach(ctxs, 100, async (ctxs: DatasourceContext[], i: number) => {
+            await Promise.all(ctxs.map(async (context) => {
+              await this.validateEach(validationRule, rule, context);
+            }))
+          })
           break
       }
     }

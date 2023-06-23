@@ -1,12 +1,5 @@
-gwRtt:
+checkGw:
   http:
-  - name: rtt
-    timeout: 3000
-    url: "{{scheme}}://{{ip}}/_rtt"
-    method: GET
-    attemptNumber: 3
-    headers:
-      Host: internal.massbitroute.net
   - name: check-gateway
     timeout: 3000
     url: "{{scheme}}://{{ip}}/config/gw-check"
@@ -18,20 +11,12 @@ gwRtt:
   validates:
   - each:
       rules: ["http", "http-success"]
-      http: rtt
-      successPercent: 50
-    allFail:
-      rules: ["change-status-reported"]
-      reason: check nginx fail
-      reasonCode: GW_ERR_NGINX
-  - each:
-      rules: ["http", "http-success"]
       http: check-gateway
       successPercent: 100
     allFail:
       rules: ["change-status-reported"]
-      reason: check so-zesty-jr fail
-      reasonCode: GW_ERR_ZESTY_JR
+      reason: check nginx fail
+      reasonCode: GW_ERR_NGINX
     allSuccess:
       rules: ["change-status-running"]
       reason: ok
@@ -47,7 +32,7 @@ dotLatestBlock:
     attemptNumber: 1
     headers:
       "content-type": application/json
-      "X-Api-Key": "{{appKey}}"
+      # "X-Api-Key": "{{appKey}}"
     body:
       jsonrpc: "2.0"
       method: "system_chain"
@@ -60,7 +45,8 @@ dotLatestBlock:
     attemptNumber: 1
     headers:
       "content-type": application/json
-      "X-Api-Key": "{{appKey}}"
+      "accept-encoding": gzip
+      # "X-Api-Key": "{{appKey}}"
     body:
       jsonrpc: "2.0"
       method: "chain_getBlock"
@@ -70,6 +56,7 @@ dotLatestBlock:
   - each:
       rules: ["http", "http-success", "map-response-field", "check-chain-id"]
       http: check-chainid
+      httpCache: true
       mapFields:
         - name: chainId
           field: "result"
@@ -81,6 +68,7 @@ dotLatestBlock:
   - each:
       rules: ["http", "http-success", "map-response-field"]
       http: check-block
+      httpCache: true
       mapFields:
         - name: "blockNumber-{{blockchain}}-{{network}}"
           from: 1
@@ -131,16 +119,18 @@ ethLatestBlock:
     attemptNumber: 1
     headers:
       "content-type": application/json
+      "accept-encoding": gzip
       # "X-Api-Key": "{{appKey}}"
     body:
       jsonrpc: "2.0"
       method: "eth_getBlockByNumber"
-      params: ["latest", true]
+      params: ["latest", false]
       id: 1
   validates:
   - each:
       rules: ["http", "http-success", "map-response-field", "check-chain-id"]
       http: check-chainid
+      httpCache: true
       mapFields:
         - name: chainId
           operator: parse-hex
@@ -153,6 +143,7 @@ ethLatestBlock:
   - each:
       rules: ["http", "http-success", "map-response-field"]
       http: check-block
+      httpCache: true
       mapFields:
         - name: "blockNumber-{{blockchain}}-{{network}}"
           from: 1

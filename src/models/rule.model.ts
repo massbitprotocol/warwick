@@ -30,6 +30,9 @@ export class TaskValidationRule {
     http: string
 
     @Expose()
+    httpCache: boolean
+
+    @Expose()
     mapFields: ReduceMapField[]
 
     @Expose()

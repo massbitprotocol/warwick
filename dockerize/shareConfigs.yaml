@@ -3,11 +3,10 @@ checkGw:
   - name: check-gateway
     timeout: 3000
     url: "{{scheme}}://{{ip}}/config/gw-check"
-    method: POST
+    method: GET
     attemptNumber: 1
     headers:
-      Host: internal.massbitroute.net
-      Authorization: "{{#build_jwt appKey id}}{{/build_jwt}}"
+      Authorization: "Bearer {{#build_jwt appKey id}}{{/build_jwt}}"
   validates:
   - each:
       rules: ["http", "http-success"]

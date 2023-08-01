@@ -9,10 +9,12 @@ require("handlebars-helpers")({
 export class TemplateService {
   constructor() {
     Handlebars.registerHelper("build_jwt", (secretKey, audience) => {
-      const jwtToken = jwt.sign({}, secretKey, {
-        issuer: "warwick",
-        audience,
-        expiresIn: "60000" // 60 seconds
+      const jwtToken = jwt.sign({}, Buffer.from(secretKey, "base64"), {
+        expiresIn: 60 * 5, // 60 seconds
+        header: {
+          typ: "JWT",
+          alg: "HS256"
+        }
       });
       return jwtToken;
     })

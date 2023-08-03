@@ -6,6 +6,7 @@ checkGw:
     method: GET
     attemptNumber: 1
     headers:
+      Host: internal.massbitroute.net
       Authorization: "Bearer {{#build_jwt appKey id}}{{/build_jwt}}"
   validates:
   - each:
